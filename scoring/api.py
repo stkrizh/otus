@@ -36,11 +36,75 @@ GENDERS = {
 }
 
 
-class CharField(object):
+class ValidationError(Exception):
     pass
 
 
-class ArgumentsField(object):
+class Field(object):
+    """Base class for fields validation.
+
+    Attributes
+    ----------
+    required : bool
+        Raise a `ValidationError` if the field value is `None`.
+        False by default.
+    nullable : bool
+        Set this to `True` to consider nullable values as valid ones.
+        True by default.
+    """
+    def __init__(self, required=False, nullable=True):
+        self.required = required
+        self.nullable = nullable
+
+    @staticmethod
+    def is_nullable(value):
+        """Check nullability of the value.
+
+        Parameters
+        ----------
+        value : Any
+            Actual field value.
+
+        Returns
+        -------
+        bool
+            `True` if `value` may be considered as a nullable,
+            `False` otherwise.
+        """
+        return bool(value)
+
+    def __call__(self, value, *args, **kwargs):
+        """Perform validation on `value`
+
+        Parameters
+        ----------
+        value : Any
+            Actual field value.
+
+        Raises
+        ------
+        ValidationError
+            If validation does not succeed.
+
+        Returns
+        -------
+        value : Any
+            Validated `value`.
+        """
+        if self.required and value is None:
+            raise ValidationError("Required!")
+
+        if not self.nullable and not self.is_nullable(value):
+            raise ValidationError("Nullable!")
+
+        return value
+
+
+class CharField(Field):
+    pass
+
+
+class ArgumentsField(Field):
     pass
 
 
@@ -48,23 +112,23 @@ class EmailField(CharField):
     pass
 
 
-class PhoneField(object):
+class PhoneField(Field):
     pass
 
 
-class DateField(object):
+class DateField(Field):
     pass
 
 
-class BirthDayField(object):
+class BirthDayField(Field):
     pass
 
 
-class GenderField(object):
+class GenderField(Field):
     pass
 
 
-class ClientIDsField(object):
+class ClientIDsField(Field):
     pass
 
 

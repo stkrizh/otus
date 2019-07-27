@@ -263,5 +263,5 @@ class ClientIDsField(Field):
         if all(isinstance(item, int) and item >= 0 for item in value):
             return value
 
-        err = u"Field `{}` must be a non-empty list with non-negative integers."
+        err = u"Field `{}` must be a non-empty list with non-negative integers"
         raise ValidationError(err.format(self.label))

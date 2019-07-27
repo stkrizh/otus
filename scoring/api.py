@@ -31,7 +31,7 @@ ERRORS = {
 }
 
 
-class RequestMeta(type):
+class ValidationMeta(type):
     """Metaclass for classes that would use validation.
 
     Set proper labels to instances of `Field` class.
@@ -42,7 +42,7 @@ class RequestMeta(type):
             if isinstance(value, fields.Field) and value.label is None:
                 value.label = key
 
-        cls = super(RequestMeta, mcls).__new__(mcls, name, bases, attrs)
+        cls = super(ValidationMeta, mcls).__new__(mcls, name, bases, attrs)
         return cls
 
     def __call__(cls, *args, **kwargs):
@@ -51,7 +51,7 @@ class RequestMeta(type):
         if args:
             raise ValueError("Positional arguments are not allowed.")
 
-        instance = super(RequestMeta, cls).__call__()
+        instance = super(ValidationMeta, cls).__call__()
 
         for key, value in cls.__dict__.items():
             if isinstance(value, fields.Field):
@@ -63,14 +63,14 @@ class RequestMeta(type):
         return instance
 
 
-class Request(object):
+class Validation(object):
     """Base class to use validation mechanism.
     """
 
-    __metaclass__ = RequestMeta
+    __metaclass__ = ValidationMeta
 
 
-class ClientsInterestsRequest(Request):
+class ClientsInterestsRequest(Validation):
     client_ids = fields.ClientIDsField(required=True)
     date = fields.DateField(required=False, nullable=True)
 
@@ -83,7 +83,7 @@ class ClientsInterestsRequest(Request):
         return interests
 
 
-class OnlineScoreRequest(Request):
+class OnlineScoreRequest(Validation):
     first_name = fields.CharField(required=False, nullable=True)
     last_name = fields.CharField(required=False, nullable=True)
     email = fields.EmailField(required=False, nullable=True)
@@ -126,7 +126,7 @@ class OnlineScoreRequest(Request):
         return {"score": score}
 
 
-class MethodRequest(Request):
+class MethodRequest(Validation):
     account = fields.CharField(required=False, nullable=True)
     login = fields.CharField(required=True, nullable=True)
     token = fields.CharField(required=True, nullable=True, max_len=512)

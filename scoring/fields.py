@@ -1,3 +1,6 @@
+import re
+
+
 class ValidationError(Exception):
     pass
 
@@ -102,15 +105,19 @@ class CharField(Field):
     ----------
     max_len: int
         Max length of the string.
+    pattern: Optional[_sre.SRE_Pattern]
+        Compiled `re` pattern
 
     + Fields
     """
 
     allowed_type = str
+    pattern = None
 
-    def __init__(self, max_len=128, **kwargs):
+    def __init__(self, max_len=128, pattern=None, **kwargs):
         super(CharField, self).__init__(**kwargs)
         self.max_len = max_len
+        self.pattern = pattern if pattern is not None else self.pattern
 
     def validate(self, value):
         value = super(CharField, self).validate(value)
@@ -118,6 +125,12 @@ class CharField(Field):
         if len(value) > self.max_len:
             err = "Field `{}` is longer than {}."
             raise ValidationError(err.format(self.label, self.max_len))
+
+        if self.pattern is not None and not self.pattern.match(value):
+            err = "Field `{}` doesn't math {} pattern."
+            raise ValidationError(err.format(self.label, self.pattern))
+
+        return value
 
 
 class ArgumentsField(Field):
@@ -127,7 +140,9 @@ class ArgumentsField(Field):
 
 
 class EmailField(CharField):
-    pass
+    """Represents an email address.
+    """
+    allowed_type = str
 
 
 class PhoneField(Field):

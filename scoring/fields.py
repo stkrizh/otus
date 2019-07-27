@@ -17,6 +17,8 @@ class Field(object):
         True by default.
     """
 
+    allowed_type = None
+
     def __init__(self, label=None, required=False, nullable=True):
         self.label = label
         self.required = required
@@ -39,7 +41,7 @@ class Field(object):
         """
         return bool(value)
 
-    def validate(self, value, *args, **kwargs):
+    def validate(self, value):
         """Perform validation on `value`.
 
         Parameters
@@ -60,6 +62,12 @@ class Field(object):
         if self.required and value is None:
             err = "Field `{}` is required."
             raise ValidationError(err.format(self.label))
+
+        if self.allowed_type is not None and not isinstance(
+            value, self.allowed_type
+        ):
+            err = "Field `{}` must be an instance of {} type."
+            raise ValidationError(err.format(self.label, self.allowed_type))
 
         if not self.nullable and not self.is_nullable(value):
             err = "Field `{}` may not be nullable."
@@ -88,7 +96,28 @@ class Field(object):
 
 
 class CharField(Field):
-    pass
+    """Represents a string.
+
+    Attributes
+    ----------
+    max_len: int
+        Max length of the string.
+
+    + Fields
+    """
+
+    allowed_type = str
+
+    def __init__(self, max_len=128, **kwargs):
+        super(CharField, self).__init__(**kwargs)
+        self.max_len = max_len
+
+    def validate(self, value):
+        value = super(CharField, self).validate(value)
+
+        if len(value) > self.max_len:
+            err = "Field `{}` is longer than {}."
+            raise ValidationError(err.format(self.label, self.max_len))
 
 
 class ArgumentsField(Field):
@@ -153,5 +182,3 @@ class UseValidation(object):
     """
 
     __metaclass__ = UseValidationMeta
-
-    

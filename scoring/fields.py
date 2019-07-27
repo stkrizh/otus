@@ -1,11 +1,5 @@
+import datetime as dt
 import re
-
-from collections import namedtuple
-
-
-ValidationResult = namedtuple(
-    "ValidationResult", ["value", "skip_further_validation"]
-)
 
 
 class ValidationError(Exception):
@@ -34,7 +28,7 @@ class Field(object):
 
     allowed_type = None
 
-    def __init__(self, label=None, required=False, nullable=True):
+    def __init__(self, label=None, required=True, nullable=False):
         self.label = label
         self.required = required
         self.nullable = nullable
@@ -56,8 +50,9 @@ class Field(object):
         """
         return not bool(value)
 
-    def validate(self, value):
-        """Perform validation on `value`.
+    def clean(self, value):
+        """Validate the given value and return its "cleaned" value.
+        Raise ValidationError for any errors.
 
         Parameters
         ----------
@@ -79,26 +74,27 @@ class Field(object):
                 err = "Field `{}` is required."
                 raise ValidationError(err.format(self.label))
 
-            return ValidationResult(
-                value=value, skip_further_validation=True
-            )
+            return value
 
-        if self.allowed_type is not None and not isinstance(
-            value, self.allowed_type
-        ):
-            err = "Field `{}` must be an instance of {} type."
-            raise ValidationError(err.format(self.label, self.allowed_type))
+        if isinstance(self.allowed_type, (type, tuple)):
+            if not isinstance(value, self.allowed_type):
+                err = "Field `{}` must be an instance of `{}` type / types."
+                err = err.format(self.label, self.allowed_type)
+                raise ValidationError(err)
 
         if self.is_nullable(value):
             if not self.nullable:
                 err = "Field `{}` may not be nullable."
                 raise ValidationError(err.format(self.label))
 
-            return ValidationResult(
-                value=value, skip_further_validation=True
-            )
+            return value
 
-        return ValidationResult(value=value, skip_further_validation=False)
+        return self.validate(value)
+
+    def validate(self, value):
+        """Additional validation of non-empty value.
+        """
+        return value
 
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -116,58 +112,62 @@ class Field(object):
                 "Label of an instance of `Field` class may not be None."
             )
 
-        validated = self.validate(value)
-        instance.__dict__[self.label] = validated.value
+        cleaned = self.clean(value)
+        instance.__dict__[self.label] = cleaned
 
 
 class CharField(Field):
     """Represents a string.
 
-    Attributes
-    ----------
-    pattern : Optional[str]
-        Regular expression pattern.
-    + Field
-
     Parameters
     ----------
     max_len: int
         Max length of the string.
-    + Field
+    + from Field
     """
 
     allowed_type = str
-    pattern = None
 
     def __init__(self, max_len=128, **kwargs):
         super(CharField, self).__init__(**kwargs)
-
         self.max_len = max_len
-        self._compiled_pattern = (
-            re.compile(self.pattern) if self.pattern is not None else None
-        )
 
     def validate(self, value):
-        validated = super(CharField, self).validate(value)
-
-        if validated.skip_further_validation:
-            return validated
-
         if len(value) > self.max_len:
-            err = "Field `{}` is longer than {}."
+            err = "Field `{}` must contain less than {} characters."
             raise ValidationError(err.format(self.label, self.max_len))
 
-        if self._compiled_pattern is not None:
-            if not self._compiled_pattern.match(value):
-                custom_err = getattr(self, "errors", {}).get("invalid")
-                err = (
-                    "Field `{}` doesn't match {} pattern."
-                    if custom_err is None
-                    else custom_err
-                )
-                raise ValidationError(err.format(self.label, self.pattern))
+        return value
 
-        return ValidationResult(value=value, skip_further_validation=False)
+
+class RegexField(CharField):
+    """ Represents a string that match specified pattern.
+
+    Parameters
+    ----------
+    patter: Optional[str]
+        Regular expression pattern.
+    + from CharField
+    """
+
+    pattern = r".*"
+    error_message = "Field `{}` doesn't match `{}` pattern."
+
+    def __init__(self, pattern=None, **kwargs):
+        super(RegexField, self).__init__(**kwargs)
+
+        self.pattern = self.pattern if pattern is None else pattern
+        self.compiled_pattern = re.compile(self.pattern)
+
+    def validate(self, value):
+        value = super(RegexField, self).validate(value)
+
+        if not self.compiled_pattern.match(value):
+            raise ValidationError(
+                self.error_message.format(self.label, self.pattern)
+            )
+
+        return value
 
 
 class ArgumentsField(Field):
@@ -177,59 +177,94 @@ class ArgumentsField(Field):
     allowed_type = dict
 
 
-class EmailField(CharField):
+class EmailField(RegexField):
     """Represents an email address.
     """
 
-    allowed_type = str
     pattern = "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-    errors = {"invalid": "Field `{}` is not valid email address."}
+    error_message = "Field `{}` is not a valid email address."
 
 
-class PhoneField(Field):
+class PhoneField(RegexField):
     """Represents a phone number.
-
-    Must contain 11 digits. May be either a string or an integer.
     """
-    allowed_type = (str, int)
+
+    allowed_type = str, int
+    pattern = "^7\d{10}$"
+    error_message = "Field `{}` is not a valid phone number."
 
     @staticmethod
     def is_nullable(value):
         return not bool(str(value))
 
     def validate(self, value):
-        validated = super(PhoneField, self).validate(value)
-
-        if validated.skip_further_validation:
-            return validated
-
-        str_value = str(value)
-
-        if len(str_value) != 11 or not str_value.isdigit():
-            err = "Field `{}` must contain exactly 11 digits."
-            raise ValidationError(err.format(self.label))
-
-        if not str_value.startswith("7"):
-            err = "Field `{}` must start with `7` digit."
-            raise ValidationError(err.format(self.label))
-
-        return ValidationResult(value=value, skip_further_validation=False)
+        value = str(value)
+        return super(PhoneField, self).validate(value)
 
 
 class DateField(Field):
-    pass
+    """Represents a date in `DD.MM. YYYY` format.
+    """
+
+    allowed_type = str
+
+    def validate(self, value):
+        try:
+            date = dt.datetime.strptime(value, "%d.%m.%Y")
+        except ValueError:
+            err = "Field `{}` doesn't match date format `DD.MM.YYYY`."
+            raise ValidationError(err.format(self.label))
+
+        return date
 
 
-class BirthDayField(Field):
-    pass
+class BirthDayField(DateField):
+    """Represents a date of birth in `DD.MM. YYYY` format.
+    """
+
+    def validate(self, value):
+        date = super(BirthDayField, self).validate(value)
+
+        if date < dt.datetime.now() - dt.timedelta(days=(365.25 * 70)):
+            err = "Field `{}` is not a valid birthday."
+            raise ValidationError(err.format(self.label))
+
+        return date
 
 
 class GenderField(Field):
-    pass
+    """Represents a gender.
+    """
+    UNKNOWN = 0
+    MALE = 1
+    FEMALE = 2
+    GENDERS = {UNKNOWN: "unknown", MALE: "male", FEMALE: "female"}
+
+    allowed_type = str, int
+
+    @staticmethod
+    def is_nullable(value):
+        return not bool(str(value))
+
+    def validate(self, value):
+        if value not in self.GENDERS:
+            err = "Field `{}` must be in {}."
+            raise ValidationError(err.format(self.label, set(self.GENDERS)))
+
+        return value
 
 
 class ClientIDsField(Field):
-    pass
+    """Represents a non-empty list of integers.
+    """
+    allowed_type = list
+
+    def validate(self, value):
+        if all(isinstance(item, int) and item >= 0 for item in value):
+            return value
+
+        err = "Field `{}` must be a non-empty list with non-negative integers."
+        raise ValidationError(err.format(self.label))
 
 
 class UseValidationMeta(type):

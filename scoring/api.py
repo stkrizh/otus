@@ -10,6 +10,8 @@ import uuid
 from optparse import OptionParser
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
+from . import fields
+
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
 ADMIN_SALT = "42"
@@ -29,129 +31,29 @@ ERRORS = {
 UNKNOWN = 0
 MALE = 1
 FEMALE = 2
-GENDERS = {
-    UNKNOWN: "unknown",
-    MALE: "male",
-    FEMALE: "female",
-}
-
-
-class ValidationError(Exception):
-    pass
-
-
-class Field(object):
-    """Base class for fields validation.
-
-    Attributes
-    ----------
-    required : bool
-        Raise a `ValidationError` if the field value is `None`.
-        False by default.
-    nullable : bool
-        Set this to `True` to consider nullable values as valid ones.
-        True by default.
-    """
-    def __init__(self, required=False, nullable=True):
-        self.required = required
-        self.nullable = nullable
-
-    @staticmethod
-    def is_nullable(value):
-        """Check nullability of the value.
-
-        Parameters
-        ----------
-        value : Any
-            Actual field value.
-
-        Returns
-        -------
-        bool
-            `True` if `value` may be considered as a nullable,
-            `False` otherwise.
-        """
-        return bool(value)
-
-    def __call__(self, value, *args, **kwargs):
-        """Perform validation on `value`
-
-        Parameters
-        ----------
-        value : Any
-            Actual field value.
-
-        Raises
-        ------
-        ValidationError
-            If validation does not succeed.
-
-        Returns
-        -------
-        value : Any
-            Validated `value`.
-        """
-        if self.required and value is None:
-            raise ValidationError("Required!")
-
-        if not self.nullable and not self.is_nullable(value):
-            raise ValidationError("Nullable!")
-
-        return value
-
-
-class CharField(Field):
-    pass
-
-
-class ArgumentsField(Field):
-    pass
-
-
-class EmailField(CharField):
-    pass
-
-
-class PhoneField(Field):
-    pass
-
-
-class DateField(Field):
-    pass
-
-
-class BirthDayField(Field):
-    pass
-
-
-class GenderField(Field):
-    pass
-
-
-class ClientIDsField(Field):
-    pass
+GENDERS = {UNKNOWN: "unknown", MALE: "male", FEMALE: "female"}
 
 
 class ClientsInterestsRequest(object):
-    client_ids = ClientIDsField(required=True)
-    date = DateField(required=False, nullable=True)
+    client_ids = fields.ClientIDsField(required=True)
+    date = fields.DateField(required=False, nullable=True)
 
 
 class OnlineScoreRequest(object):
-    first_name = CharField(required=False, nullable=True)
-    last_name = CharField(required=False, nullable=True)
-    email = EmailField(required=False, nullable=True)
-    phone = PhoneField(required=False, nullable=True)
-    birthday = BirthDayField(required=False, nullable=True)
-    gender = GenderField(required=False, nullable=True)
+    first_name = fields.CharField(required=False, nullable=True)
+    last_name = fields.CharField(required=False, nullable=True)
+    email = fields.EmailField(required=False, nullable=True)
+    phone = fields.PhoneField(required=False, nullable=True)
+    birthday = fields.BirthDayField(required=False, nullable=True)
+    gender = fields.GenderField(required=False, nullable=True)
 
 
 class MethodRequest(object):
-    account = CharField(required=False, nullable=True)
-    login = CharField(required=True, nullable=True)
-    token = CharField(required=True, nullable=True)
-    arguments = ArgumentsField(required=True, nullable=True)
-    method = CharField(required=True, nullable=False)
+    account = fields.CharField(required=False, nullable=True)
+    login = fields.CharField(required=True, nullable=True)
+    token = fields.CharField(required=True, nullable=True)
+    arguments = fields.ArgumentsField(required=True, nullable=True)
+    method = fields.CharField(required=True, nullable=False)
 
     @property
     def is_admin(self):
@@ -160,7 +62,9 @@ class MethodRequest(object):
 
 def check_auth(request):
     if request.is_admin:
-        digest = hashlib.sha512(datetime.datetime.now().strftime("%Y%m%d%H") + ADMIN_SALT).hexdigest()
+        digest = hashlib.sha512(
+            datetime.datetime.now().strftime("%Y%m%d%H") + ADMIN_SALT
+        ).hexdigest()
     else:
         digest = hashlib.sha512(request.account + request.login + SALT).hexdigest()
     if digest == request.token:
@@ -174,20 +78,18 @@ def method_handler(request, ctx, store):
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
-    router = {
-        "method": method_handler
-    }
+    router = {"method": method_handler}
     store = None
 
     def get_request_id(self, headers):
-        return headers.get('HTTP_X_REQUEST_ID', uuid.uuid4().hex)
+        return headers.get("HTTP_X_REQUEST_ID", uuid.uuid4().hex)
 
     def do_POST(self):
         response, code = {}, OK
         context = {"request_id": self.get_request_id(self.headers)}
         request = None
         try:
-            data_string = self.rfile.read(int(self.headers['Content-Length']))
+            data_string = self.rfile.read(int(self.headers["Content-Length"]))
             request = json.loads(data_string)
         except:
             code = BAD_REQUEST
@@ -197,8 +99,10 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
             logging.info("%s: %s %s" % (self.path, data_string, context["request_id"]))
             if path in self.router:
                 try:
-                    response, code = self.router[path]({"body": request, "headers": self.headers}, context, self.store)
-                except Exception, e:
+                    response, code = self.router[path](
+                        {"body": request, "headers": self.headers}, context, self.store
+                    )
+                except Exception as e:
                     logging.exception("Unexpected error: %s" % e)
                     code = INTERNAL_ERROR
             else:
@@ -222,8 +126,12 @@ if __name__ == "__main__":
     op.add_option("-p", "--port", action="store", type=int, default=8080)
     op.add_option("-l", "--log", action="store", default=None)
     (opts, args) = op.parse_args()
-    logging.basicConfig(filename=opts.log, level=logging.INFO,
-                        format='[%(asctime)s] %(levelname).1s %(message)s', datefmt='%Y.%m.%d %H:%M:%S')
+    logging.basicConfig(
+        filename=opts.log,
+        level=logging.INFO,
+        format="[%(asctime)s] %(levelname).1s %(message)s",
+        datefmt="%Y.%m.%d %H:%M:%S",
+    )
     server = HTTPServer(("localhost", opts.port), MainHTTPHandler)
     logging.info("Starting server at %s" % opts.port)
     try:

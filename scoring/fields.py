@@ -183,11 +183,37 @@ class EmailField(CharField):
 
     allowed_type = str
     pattern = "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-    errors = {"invalid": "Field `{}` is invalid email address."}
+    errors = {"invalid": "Field `{}` is not valid email address."}
 
 
 class PhoneField(Field):
-    pass
+    """Represents a phone number.
+
+    Must contain 11 digits. May be either a string or an integer.
+    """
+    allowed_type = (str, int)
+
+    @staticmethod
+    def is_nullable(value):
+        return not bool(str(value))
+
+    def validate(self, value):
+        validated = super(PhoneField, self).validate(value)
+
+        if validated.skip_further_validation:
+            return validated
+
+        str_value = str(value)
+
+        if len(str_value) != 11 or not str_value.isdigit():
+            err = "Field `{}` must contain exactly 11 digits."
+            raise ValidationError(err.format(self.label))
+
+        if not str_value.startswith("7"):
+            err = "Field `{}` must start with `7` digit."
+            raise ValidationError(err.format(self.label))
+
+        return ValidationResult(value=value, skip_further_validation=False)
 
 
 class DateField(Field):

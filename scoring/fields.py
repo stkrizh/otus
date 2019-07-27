@@ -121,7 +121,9 @@ class CharField(Field):
 
 
 class ArgumentsField(Field):
-    pass
+    """Represents a dictionary.
+    """
+    allowed_type = dict
 
 
 class EmailField(CharField):

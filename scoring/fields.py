@@ -1,5 +1,12 @@
 import re
 
+from collections import namedtuple
+
+
+ValidationResult = namedtuple(
+    "ValidationResult", ["value", "skip_further_validation"]
+)
+
 
 class ValidationError(Exception):
     pass
@@ -9,6 +16,11 @@ class Field(object):
     """Base class for fields validation.
 
     Attributes
+    ----------
+    allowed_type : Optional[type or Tuple[type]]
+        Allowed field's type.
+
+    Parameters
     ----------
     label: Optional[str]
         Name of the field.
@@ -42,7 +54,7 @@ class Field(object):
             `True` if `value` may be considered as a nullable,
             `False` otherwise.
         """
-        return bool(value)
+        return not bool(value)
 
     def validate(self, value):
         """Perform validation on `value`.
@@ -59,12 +71,17 @@ class Field(object):
 
         Returns
         -------
-        value : Any
-            Validated `value`.
+        result : ValidationResult
         """
-        if self.required and value is None:
-            err = "Field `{}` is required."
-            raise ValidationError(err.format(self.label))
+
+        if value is None:
+            if self.required:
+                err = "Field `{}` is required."
+                raise ValidationError(err.format(self.label))
+
+            return ValidationResult(
+                value=value, skip_further_validation=True
+            )
 
         if self.allowed_type is not None and not isinstance(
             value, self.allowed_type
@@ -72,11 +89,16 @@ class Field(object):
             err = "Field `{}` must be an instance of {} type."
             raise ValidationError(err.format(self.label, self.allowed_type))
 
-        if not self.nullable and not self.is_nullable(value):
-            err = "Field `{}` may not be nullable."
-            raise ValidationError(err.format(self.label))
+        if self.is_nullable(value):
+            if not self.nullable:
+                err = "Field `{}` may not be nullable."
+                raise ValidationError(err.format(self.label))
 
-        return value
+            return ValidationResult(
+                value=value, skip_further_validation=True
+            )
+
+        return ValidationResult(value=value, skip_further_validation=False)
 
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -94,8 +116,8 @@ class Field(object):
                 "Label of an instance of `Field` class may not be None."
             )
 
-        cleaned_value = self.validate(value)
-        instance.__dict__[self.label] = cleaned_value
+        validated = self.validate(value)
+        instance.__dict__[self.label] = validated.value
 
 
 class CharField(Field):
@@ -103,46 +125,65 @@ class CharField(Field):
 
     Attributes
     ----------
+    pattern : Optional[str]
+        Regular expression pattern.
+    + Field
+
+    Parameters
+    ----------
     max_len: int
         Max length of the string.
-    pattern: Optional[_sre.SRE_Pattern]
-        Compiled `re` pattern
-
-    + Fields
+    + Field
     """
 
     allowed_type = str
     pattern = None
 
-    def __init__(self, max_len=128, pattern=None, **kwargs):
+    def __init__(self, max_len=128, **kwargs):
         super(CharField, self).__init__(**kwargs)
+
         self.max_len = max_len
-        self.pattern = pattern if pattern is not None else self.pattern
+        self._compiled_pattern = (
+            re.compile(self.pattern) if self.pattern is not None else None
+        )
 
     def validate(self, value):
-        value = super(CharField, self).validate(value)
+        validated = super(CharField, self).validate(value)
+
+        if validated.skip_further_validation:
+            return validated
 
         if len(value) > self.max_len:
             err = "Field `{}` is longer than {}."
             raise ValidationError(err.format(self.label, self.max_len))
 
-        if self.pattern is not None and not self.pattern.match(value):
-            err = "Field `{}` doesn't math {} pattern."
-            raise ValidationError(err.format(self.label, self.pattern))
+        if self._compiled_pattern is not None:
+            if not self._compiled_pattern.match(value):
+                custom_err = getattr(self, "errors", {}).get("invalid")
+                err = (
+                    "Field `{}` doesn't match {} pattern."
+                    if custom_err is None
+                    else custom_err
+                )
+                raise ValidationError(err.format(self.label, self.pattern))
 
-        return value
+        return ValidationResult(value=value, skip_further_validation=False)
 
 
 class ArgumentsField(Field):
     """Represents a dictionary.
     """
+
     allowed_type = dict
 
 
 class EmailField(CharField):
     """Represents an email address.
     """
+
     allowed_type = str
+    pattern = "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    errors = {"invalid": "Field `{}` is invalid email address."}
 
 
 class PhoneField(Field):

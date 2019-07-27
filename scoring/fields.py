@@ -16,7 +16,7 @@ class Field(object):
 
     Parameters
     ----------
-    label: Optional[str]
+    label: Optional[unicode]
         Name of the field.
     required : bool
         Raise a `ValidationError` if the field value is `None`.
@@ -71,20 +71,20 @@ class Field(object):
 
         if value is None:
             if self.required:
-                err = "Field `{}` is required."
+                err = u"Field `{}` is required."
                 raise ValidationError(err.format(self.label))
 
             return value
 
         if isinstance(self.allowed_type, (type, tuple)):
             if not isinstance(value, self.allowed_type):
-                err = "Field `{}` must be an instance of `{}` type / types."
+                err = u"Field `{}` must be an instance of `{}` type / types."
                 err = err.format(self.label, self.allowed_type)
                 raise ValidationError(err)
 
         if self.is_nullable(value):
             if not self.nullable:
-                err = "Field `{}` may not be nullable."
+                err = u"Field `{}` may not be nullable."
                 raise ValidationError(err.format(self.label))
 
             return value
@@ -102,14 +102,14 @@ class Field(object):
 
         if self.label is None:
             raise ValueError(
-                "Label of an instance of `Field` class may not be None."
+                u"Label of an instance of `Field` class may not be None."
             )
         return instance.__dict__[self.label]
 
     def __set__(self, instance, value):
         if self.label is None:
             raise ValueError(
-                "Label of an instance of `Field` class may not be None."
+                u"Label of an instance of `Field` class may not be None."
             )
 
         cleaned = self.clean(value)
@@ -126,7 +126,7 @@ class CharField(Field):
     + from Field
     """
 
-    allowed_type = str
+    allowed_type = unicode, str
 
     def __init__(self, max_len=128, **kwargs):
         super(CharField, self).__init__(**kwargs)
@@ -134,7 +134,7 @@ class CharField(Field):
 
     def validate(self, value):
         if len(value) > self.max_len:
-            err = "Field `{}` must contain less than {} characters."
+            err = u"Field `{}` must contain less than {} characters."
             raise ValidationError(err.format(self.label, self.max_len))
 
         return value
@@ -145,13 +145,13 @@ class RegexField(CharField):
 
     Parameters
     ----------
-    patter: Optional[str]
+    patter: Optional[unicode]
         Regular expression pattern.
     + from CharField
     """
 
-    pattern = r".*"
-    error_message = "Field `{}` doesn't match `{}` pattern."
+    pattern = ur".*"
+    error_message = u"Field `{}` doesn't match `{}` pattern."
 
     def __init__(self, pattern=None, **kwargs):
         super(RegexField, self).__init__(**kwargs)
@@ -181,17 +181,17 @@ class EmailField(RegexField):
     """Represents an email address.
     """
 
-    pattern = "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-    error_message = "Field `{}` is not a valid email address."
+    pattern = ur"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    error_message = u"Field `{}` is not a valid email address."
 
 
 class PhoneField(RegexField):
     """Represents a phone number.
     """
 
-    allowed_type = str, int
-    pattern = "^7\d{10}$"
-    error_message = "Field `{}` is not a valid phone number."
+    allowed_type = unicode, str, int
+    pattern = ur"^7\d{10}$"
+    error_message = u"Field `{}` is not a valid phone number."
 
     @staticmethod
     def is_nullable(value):
@@ -206,13 +206,13 @@ class DateField(Field):
     """Represents a date in `DD.MM. YYYY` format.
     """
 
-    allowed_type = str
+    allowed_type = unicode, str
 
     def validate(self, value):
         try:
             date = dt.datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
-            err = "Field `{}` doesn't match date format `DD.MM.YYYY`."
+            err = u"Field `{}` doesn't match date format `DD.MM.YYYY`."
             raise ValidationError(err.format(self.label))
 
         return date
@@ -226,7 +226,7 @@ class BirthDayField(DateField):
         date = super(BirthDayField, self).validate(value)
 
         if date < dt.datetime.now() - dt.timedelta(days=(365.25 * 70)):
-            err = "Field `{}` is not a valid birthday."
+            err = u"Field `{}` is not a valid birthday."
             raise ValidationError(err.format(self.label))
 
         return date
@@ -238,17 +238,17 @@ class GenderField(Field):
     UNKNOWN = 0
     MALE = 1
     FEMALE = 2
-    GENDERS = {UNKNOWN: "unknown", MALE: "male", FEMALE: "female"}
+    GENDERS = {UNKNOWN: u"unknown", MALE: u"male", FEMALE: u"female"}
 
-    allowed_type = str, int
+    allowed_type = unicode, str, int
 
     @staticmethod
     def is_nullable(value):
-        return not bool(str(value))
+        return not bool(unicode(value))
 
     def validate(self, value):
         if value not in self.GENDERS:
-            err = "Field `{}` must be in {}."
+            err = u"Field `{}` must be in {}."
             raise ValidationError(err.format(self.label, set(self.GENDERS)))
 
         return value
@@ -263,41 +263,5 @@ class ClientIDsField(Field):
         if all(isinstance(item, int) and item >= 0 for item in value):
             return value
 
-        err = "Field `{}` must be a non-empty list with non-negative integers."
+        err = u"Field `{}` must be a non-empty list with non-negative integers."
         raise ValidationError(err.format(self.label))
-
-
-class UseValidationMeta(type):
-    """Metaclass for classes that would use validation.
-
-    Set proper labels to instances of `Field` class.
-    """
-
-    def __new__(mcls, name, bases, attrs):
-        for key, value in attrs.items():
-            if isinstance(value, Field) and value.label is None:
-                value.label = key
-
-        cls = super(UseValidationMeta, mcls).__new__(mcls, name, bases, attrs)
-        return cls
-
-    def __call__(cls, *args, **kwargs):
-        """Run validation on each instance of `Field` class.
-        """
-        if args:
-            raise ValueError("Positional arguments are not allowed.")
-
-        instance = super(UseValidationMeta, cls).__call__()
-
-        for key, value in cls.__dict__.items():
-            if isinstance(value, Field):
-                setattr(instance, key, kwargs.get(key))
-
-        return instance
-
-
-class UseValidation(object):
-    """Base class to use validation mechanism.
-    """
-
-    __metaclass__ = UseValidationMeta

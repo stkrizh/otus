@@ -70,6 +70,11 @@ class Validation(object):
 
     __metaclass__ = ValidationMeta
 
+    def validation(self):
+        """Class-wide validation on fields.
+        """
+        pass
+
 
 class ClientsInterestsRequest(Validation):
     client_ids = fields.ClientIDsField(required=True)
@@ -157,6 +162,12 @@ class MethodRequest(Validation):
 
         return digest == self.token
 
+    def __call__(self, ctx):
+        method = self.ALLOWED_METHODS[self.method]
+        request = method(**self.arguments)
+        response = request(ctx, self.is_admin)
+        return response
+
 
 def method_handler(raw_request, ctx, store):
     payload = raw_request.get("body", {})
@@ -170,18 +181,10 @@ def method_handler(raw_request, ctx, store):
         return None, FORBIDDEN
 
     try:
-        if request.method == "online_score":
-            method = OnlineScoreRequest(**request.arguments)
-        elif request.method == "clients_interests":
-            method = ClientsInterestsRequest(**request.arguments)
-        else:
-            response = "Method `{}` is not found.".format(request.method)
-            return response, INVALID_REQUEST
-
+        response = request(ctx)
     except fields.ValidationError as exc:
         return str(exc), INVALID_REQUEST
 
-    response = method(ctx, request.is_admin)
     return response, OK
 
 

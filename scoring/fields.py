@@ -94,7 +94,7 @@ class Field(object):
         if self.choices:
             if value not in self.choices:
                 err = u"Invalid value for field `{}`. Choices are: `{}`."
-                choices = ", ".join(self.choices)
+                choices = ", ".join(str(item) for item in self.choices)
                 raise ValidationError(err.format(self.label, choices))
 
             return value

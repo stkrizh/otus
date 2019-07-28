@@ -1,6 +1,9 @@
 # Scoring API
 Otus Scoring API task
 
+## **Requirements**
+Python 2.7
+
 ## **Installation**
 ```
 git clone https://github.com/stkrizh/otus.git

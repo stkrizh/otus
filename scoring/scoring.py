@@ -14,7 +14,7 @@ def get_score(
         score += 1.5
     if email:
         score += 1.5
-    if birthday and gender:
+    if birthday and isinstance(gender, int):
         score += 1.5
     if first_name and last_name:
         score += 0.5

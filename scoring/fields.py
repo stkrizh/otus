@@ -27,11 +27,13 @@ class Field(object):
     """
 
     allowed_type = None
+    choices = None
 
-    def __init__(self, label=None, required=True, nullable=False):
+    def __init__(self, label=None, required=True, nullable=False, choices=None):
         self.label = label
         self.required = required
         self.nullable = nullable
+        self.choices = choices if choices is not None else self.choices
 
     @staticmethod
     def is_nullable(value):
@@ -86,6 +88,14 @@ class Field(object):
             if not self.nullable:
                 err = u"Field `{}` may not be nullable."
                 raise ValidationError(err.format(self.label))
+
+            return value
+
+        if self.choices:
+            if value not in self.choices:
+                err = u"Invalid value for field `{}`. Choices are: `{}`."
+                choices = ", ".join(self.choices)
+                raise ValidationError(err.format(self.label, choices))
 
             return value
 
@@ -150,7 +160,7 @@ class RegexField(CharField):
     + from CharField
     """
 
-    pattern = ur".*"
+    pattern = r".*"
     error_message = u"Field `{}` doesn't match `{}` pattern."
 
     def __init__(self, pattern=None, **kwargs):
@@ -181,7 +191,7 @@ class EmailField(RegexField):
     """Represents an email address.
     """
 
-    pattern = ur"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     error_message = u"Field `{}` is not a valid email address."
 
 
@@ -190,7 +200,7 @@ class PhoneField(RegexField):
     """
 
     allowed_type = unicode, str, int
-    pattern = ur"^7\d{10}$"
+    pattern = r"^7\d{10}$"
     error_message = u"Field `{}` is not a valid phone number."
 
     @staticmethod
@@ -235,28 +245,24 @@ class BirthDayField(DateField):
 class GenderField(Field):
     """Represents a gender.
     """
+
     UNKNOWN = 0
     MALE = 1
     FEMALE = 2
     GENDERS = {UNKNOWN: u"unknown", MALE: u"male", FEMALE: u"female"}
 
     allowed_type = unicode, str, int
+    choices = GENDERS
 
     @staticmethod
     def is_nullable(value):
         return not bool(unicode(value))
 
-    def validate(self, value):
-        if value not in self.GENDERS:
-            err = u"Field `{}` must be in {}."
-            raise ValidationError(err.format(self.label, set(self.GENDERS)))
-
-        return value
-
 
 class ClientIDsField(Field):
     """Represents a non-empty list of integers.
     """
+
     allowed_type = list
 
     def validate(self, value):

@@ -128,11 +128,18 @@ class OnlineScoreRequest(Validation):
 
 
 class MethodRequest(Validation):
+    ALLOWED_METHODS = {
+        "online_score": OnlineScoreRequest,
+        "clients_interests": ClientsInterestsRequest,
+    }
+
     account = fields.CharField(required=False, nullable=True)
     login = fields.CharField(required=True, nullable=True)
     token = fields.CharField(required=True, nullable=True, max_len=512)
     arguments = fields.ArgumentsField(required=True, nullable=True)
-    method = fields.CharField(required=True, nullable=False)
+    method = fields.CharField(
+        required=True, nullable=False, choices=ALLOWED_METHODS
+    )
 
     @property
     def is_admin(self):

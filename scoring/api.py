@@ -68,7 +68,7 @@ class Request(object):
 
         Raises
         ------
-        ValidationError
+        fields.ValidationError
             If validation does not succeed.
         """
         for field, value in self.raw_fields.items():
@@ -78,14 +78,6 @@ class Request(object):
 class ClientsInterestsRequest(Request):
     client_ids = fields.ClientIDsField(required=True)
     date = fields.DateField(required=False, nullable=True)
-
-    def __call__(self, ctx, is_admin=False):
-        ctx["nclients"] = len(self.client_ids)
-
-        interests = {
-            str(cid): scoring.get_interests(cid) for cid in self.client_ids
-        }
-        return interests
 
 
 class OnlineScoreRequest(Request):
@@ -108,44 +100,13 @@ class OnlineScoreRequest(Request):
         ):
             raise fields.ValidationError("Insufficient data.")
 
-    def __call__(self, ctx, is_admin=False):
-        for key, attr in self.__class__.__dict__.items():
-            if not isinstance(attr, fields.Field):
-                continue
-
-            value = getattr(self, key)
-            if value is not None and not attr.is_nullable(value):
-                ctx.setdefault("has", [])
-                ctx["has"].append(key)
-
-        if is_admin:
-            return {"score": 42}
-
-        score = scoring.get_score(
-            phone=self.phone,
-            email=self.email,
-            birthday=self.birthday,
-            gender=self.gender,
-            first_name=self.first_name,
-            last_name=self.last_name,
-        )
-
-        return {"score": score}
-
 
 class MethodRequest(Request):
-    ALLOWED_METHODS = {
-        "online_score": OnlineScoreRequest,
-        "clients_interests": ClientsInterestsRequest,
-    }
-
     account = fields.CharField(required=False, nullable=True)
     login = fields.CharField(required=True, nullable=True)
     token = fields.CharField(required=True, nullable=True, max_len=512)
     arguments = fields.ArgumentsField(required=True, nullable=True)
-    method = fields.CharField(
-        required=True, nullable=False, choices=ALLOWED_METHODS
-    )
+    method = fields.CharField(required=True, nullable=False)
 
     @property
     def is_admin(self):
@@ -163,20 +124,66 @@ class MethodRequest(Request):
 
         return digest == self.token
 
-    def __call__(self, ctx):
-        method = self.ALLOWED_METHODS[self.method]
-        request = method(**self.arguments)
-        request.validate()
 
-        response = request(ctx, self.is_admin)
-        return response
+def online_score_handler(method_request, context, store):
+    request = OnlineScoreRequest(**method_request.arguments)
+
+    try:
+        request.validate()
+    except fields.ValidationError as exc:
+        return str(exc), INVALID_REQUEST
+
+    context["has"] = []
+    for key, attr in OnlineScoreRequest.__dict__.items():
+        if not isinstance(attr, fields.Field):
+            continue
+        value = getattr(request, key)
+        if value is not None and not attr.is_nullable(value):
+            context["has"].append(key)
+
+    if method_request.is_admin:
+        response = {"score": 42}
+    else:
+        score = scoring.get_score(
+            phone=request.phone,
+            email=request.email,
+            birthday=request.birthday,
+            gender=request.gender,
+            first_name=request.first_name,
+            last_name=request.last_name,
+        )
+        response = {"score": score}
+
+    return response, OK
+
+
+def clients_interests_handler(method_request, context, store):
+    request = ClientsInterestsRequest(**method_request.arguments)
+
+    try:
+        request.validate()
+    except fields.ValidationError as exc:
+        return str(exc), INVALID_REQUEST
+
+    context["nclients"] = len(request.client_ids)
+
+    response = {
+        str(cid): scoring.get_interests(cid) for cid in request.client_ids
+    }
+
+    return response, OK
 
 
 def method_handler(raw_request, ctx, store):
     payload = raw_request.get("body", {})
+    request = MethodRequest(**payload)
+
+    allowed_methods = {
+        "online_score": online_score_handler,
+        "clients_interests": clients_interests_handler,
+    }
 
     try:
-        request = MethodRequest(**payload)
         request.validate()
     except fields.ValidationError as exc:
         return str(exc), INVALID_REQUEST
@@ -184,12 +191,13 @@ def method_handler(raw_request, ctx, store):
     if not request.check_auth():
         return None, FORBIDDEN
 
-    try:
-        response = request(ctx)
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
+    method = allowed_methods.get(request.method)
 
-    return response, OK
+    if method is None:
+        err = "Method is not allowed."
+        return err, INVALID_REQUEST
+
+    return method(request, ctx, store)
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):

@@ -31,7 +31,7 @@ ERRORS = {
 }
 
 
-class ValidationMeta(type):
+class RequestMeta(type):
     """Metaclass for classes that would use validation.
 
     Sets proper labels to instances of `Field` class. Also performs
@@ -43,7 +43,7 @@ class ValidationMeta(type):
             if isinstance(value, fields.Field) and value.label is None:
                 value.label = key
 
-        cls = super(ValidationMeta, mcls).__new__(mcls, name, bases, attrs)
+        cls = super(RequestMeta, mcls).__new__(mcls, name, bases, attrs)
         return cls
 
     def __call__(cls, *args, **kwargs):
@@ -52,7 +52,7 @@ class ValidationMeta(type):
         if args:
             raise ValueError("Positional arguments are not allowed.")
 
-        instance = super(ValidationMeta, cls).__call__()
+        instance = super(RequestMeta, cls).__call__()
 
         for key, value in cls.__dict__.items():
             if isinstance(value, fields.Field):
@@ -64,11 +64,11 @@ class ValidationMeta(type):
         return instance
 
 
-class Validation(object):
+class Request(object):
     """Base class to use validation mechanism.
     """
 
-    __metaclass__ = ValidationMeta
+    __metaclass__ = RequestMeta
 
     def validation(self):
         """Class-wide validation on fields.
@@ -76,7 +76,7 @@ class Validation(object):
         pass
 
 
-class ClientsInterestsRequest(Validation):
+class ClientsInterestsRequest(Request):
     client_ids = fields.ClientIDsField(required=True)
     date = fields.DateField(required=False, nullable=True)
 
@@ -89,7 +89,7 @@ class ClientsInterestsRequest(Validation):
         return interests
 
 
-class OnlineScoreRequest(Validation):
+class OnlineScoreRequest(Request):
     first_name = fields.CharField(required=False, nullable=True)
     last_name = fields.CharField(required=False, nullable=True)
     email = fields.EmailField(required=False, nullable=True)
@@ -132,7 +132,7 @@ class OnlineScoreRequest(Validation):
         return {"score": score}
 
 
-class MethodRequest(Validation):
+class MethodRequest(Request):
     ALLOWED_METHODS = {
         "online_score": OnlineScoreRequest,
         "clients_interests": ClientsInterestsRequest,

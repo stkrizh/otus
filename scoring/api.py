@@ -39,29 +39,17 @@ class RequestMeta(type):
     """
 
     def __new__(mcls, name, bases, attrs):
-        for key, value in attrs.items():
-            if isinstance(value, fields.Field) and value.label is None:
-                value.label = key
+        fields_for_validation = []
 
+        for key, value in attrs.items():
+            if isinstance(value, fields.Field):
+                if value.label is None:
+                    value.label = key
+                fields_for_validation.append(key)
+
+        attrs["fields_for_validation"] = fields_for_validation
         cls = super(RequestMeta, mcls).__new__(mcls, name, bases, attrs)
         return cls
-
-    def __call__(cls, *args, **kwargs):
-        """Run validation on each instance of `Field` class.
-        """
-        if args:
-            raise ValueError("Positional arguments are not allowed.")
-
-        instance = super(RequestMeta, cls).__call__()
-
-        for key, value in cls.__dict__.items():
-            if isinstance(value, fields.Field):
-                setattr(instance, key, kwargs.get(key))
-
-        if hasattr(cls, "validate"):
-            instance.validate()
-
-        return instance
 
 
 class Request(object):
@@ -70,10 +58,21 @@ class Request(object):
 
     __metaclass__ = RequestMeta
 
-    def validation(self):
-        """Class-wide validation on fields.
+    def __init__(self, **kwargs):
+        self.raw_fields = {}
+        for field in self.fields_for_validation:
+            self.raw_fields[field] = kwargs.get(field)
+
+    def validate(self):
+        """Run validation on an instance of the class.
+
+        Raises
+        ------
+        ValidationError
+            If validation does not succeed.
         """
-        pass
+        for field, value in self.raw_fields.items():
+            value = setattr(self, field, value)
 
 
 class ClientsInterestsRequest(Request):
@@ -98,6 +97,8 @@ class OnlineScoreRequest(Request):
     gender = fields.GenderField(required=False, nullable=True)
 
     def validate(self):
+        super(OnlineScoreRequest, self).validate()
+
         if not any(
             (
                 self.first_name and self.last_name,
@@ -165,6 +166,8 @@ class MethodRequest(Request):
     def __call__(self, ctx):
         method = self.ALLOWED_METHODS[self.method]
         request = method(**self.arguments)
+        request.validate()
+
         response = request(ctx, self.is_admin)
         return response
 
@@ -174,6 +177,7 @@ def method_handler(raw_request, ctx, store):
 
     try:
         request = MethodRequest(**payload)
+        request.validate()
     except fields.ValidationError as exc:
         return str(exc), INVALID_REQUEST
 

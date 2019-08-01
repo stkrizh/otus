@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import abc
 import json
 import datetime
 import logging
@@ -112,94 +113,166 @@ class MethodRequest(Request):
     def is_admin(self):
         return self.login == ADMIN_LOGIN
 
-    def check_auth(self):
-        if self.is_admin:
+
+class Handler(object):
+    """Parent class for all handlers.
+
+    Attributes
+    ----------
+    request_class : RequestMeta
+        Should be a subclass of Request.
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    request_class = None
+
+    def __init__(self, request, context, store):
+        self.raw_request = request
+        self.context = context
+        self.store = store
+
+    def check_auth(self, request):
+        """Check if a request is authenticated.
+
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+        """
+        return True
+
+    @abc.abstractmethod
+    def process(self, request):
+        """Returns a response.
+
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+
+        Returns
+        -------
+        response: Tuple[dict, int]
+            Tuple of response and status
+        """
+        NotImplemented
+
+    def update_context(self, request):
+        """
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+        """
+        pass
+
+    def get_payload(self):
+        """Get a dictionary with data for validation.
+        """
+        return self.raw_request
+
+    def get_response(self):
+        """
+        Returns
+        -------
+        response: Tuple[dict, int]
+            Tuple of response and status
+        """
+        payload = self.get_payload()
+        request = self.request_class(**payload)
+
+        try:
+            request.validate()
+        except fields.ValidationError as exc:
+            return str(exc), INVALID_REQUEST
+
+        if not self.check_auth(request):
+            return None, FORBIDDEN
+
+        self.update_context(request)
+        return self.process(request)
+
+
+class ClientsInterestsHandler(Handler):
+    request_class = ClientsInterestsRequest
+
+    def update_context(self, request):
+        self.context["nclients"] = len(request.client_ids)
+
+    def process(self, request):
+        response = {
+            str(cid): scoring.get_interests(cid) for cid in request.client_ids
+        }
+        return response, OK
+
+
+class OnlineScoreHandler(Handler):
+    request_class = OnlineScoreRequest
+
+    def update_context(self, request):
+        self.context["has"] = []
+        for field_name, field_type in request.declared_fields:
+            value = getattr(request, field_name)
+            if value is not None and not field_type.is_nullable(value):
+                self.context["has"].append(field_name)
+
+    def process(self, request):
+        if self.context.get("is_admin"):
+            response = {"score": 42}
+        else:
+            score = scoring.get_score(
+                phone=request.phone,
+                email=request.email,
+                birthday=request.birthday,
+                gender=request.gender,
+                first_name=request.first_name,
+                last_name=request.last_name,
+            )
+            response = {"score": score}
+
+        return response, OK
+
+
+class MethodHandler(Handler):
+    request_class = MethodRequest
+
+    allowed_methods = {
+        "online_score": OnlineScoreHandler,
+        "clients_interests": ClientsInterestsHandler,
+    }
+
+    def check_auth(self, request):
+        if request.is_admin:
             digest = hashlib.sha512(
                 datetime.datetime.now().strftime("%Y%m%d%H") + ADMIN_SALT
             ).hexdigest()
         else:
             digest = hashlib.sha512(
-                self.account + self.login + SALT
+                request.account + request.login + SALT
             ).hexdigest()
 
-        return digest == self.token
+        return digest == request.token
 
+    def get_payload(self):
+        return self.raw_request.get("body", {})
 
-def online_score(method_request, context, store):
-    request = OnlineScoreRequest(**method_request.arguments)
+    def update_context(self, request):
+        self.context["is_admin"] = request.is_admin
 
-    try:
-        request.validate()
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
+    def process(self, request):
+        method = self.allowed_methods.get(request.method)
 
-    context["has"] = []
-    for field_name, field_type in request.declared_fields:
-        value = getattr(request, field_name)
-        if value is not None and not field_type.is_nullable(value):
-            context["has"].append(field_name)
+        if method is None:
+            err = "Method is not allowed."
+            return err, INVALID_REQUEST
 
-    if method_request.is_admin:
-        response = {"score": 42}
-    else:
-        score = scoring.get_score(
-            phone=request.phone,
-            email=request.email,
-            birthday=request.birthday,
-            gender=request.gender,
-            first_name=request.first_name,
-            last_name=request.last_name,
-        )
-        response = {"score": score}
-
-    return response, OK
-
-
-def clients_interests(method_request, context, store):
-    request = ClientsInterestsRequest(**method_request.arguments)
-
-    try:
-        request.validate()
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
-
-    context["nclients"] = len(request.client_ids)
-
-    response = {
-        str(cid): scoring.get_interests(cid) for cid in request.client_ids
-    }
-
-    return response, OK
-
-
-def method_handler(raw_request, ctx, store):
-    payload = raw_request.get("body", {})
-    request = MethodRequest(**payload)
-
-    allowed_methods = {
-        "online_score": online_score,
-        "clients_interests": clients_interests,
-    }
-
-    try:
-        request.validate()
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
-
-    if not request.check_auth():
-        return None, FORBIDDEN
-
-    method = allowed_methods.get(request.method)
-
-    if method is None:
-        err = "Method is not allowed."
-        return err, INVALID_REQUEST
-
-    return method(request, ctx, store)
+        handler = method(request.arguments, self.context, self.store)
+        return handler.get_response()
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
-    router = {"method": method_handler}
+    router = {"method": MethodHandler}
     store = None
 
     def get_request_id(self, headers):

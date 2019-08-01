@@ -34,34 +34,34 @@ ERRORS = {
 class RequestMeta(type):
     """Metaclass for classes that would use validation.
 
-    Sets proper labels to instances of `Field` class. Also performs
-    class-wide validation.
+    Sets proper labels to instances of `Field` class. Saves fields
+    for validation to `declared_fields` attribute.
     """
 
     def __new__(mcls, name, bases, attrs):
-        fields_for_validation = []
+        declared_fields = []
 
         for key, value in attrs.items():
             if isinstance(value, fields.Field):
                 if value.label is None:
                     value.label = key
-                fields_for_validation.append(key)
+                declared_fields.append((key, value))
 
-        attrs["fields_for_validation"] = fields_for_validation
+        attrs["declared_fields"] = declared_fields
         cls = super(RequestMeta, mcls).__new__(mcls, name, bases, attrs)
         return cls
 
 
 class Request(object):
-    """Base class to use validation mechanism.
+    """Base class that uses fields validation.
     """
 
     __metaclass__ = RequestMeta
 
     def __init__(self, **kwargs):
-        self.raw_fields = {}
-        for field in self.fields_for_validation:
-            self.raw_fields[field] = kwargs.get(field)
+        self.raw = {}
+        for field_name, field_type in self.declared_fields:
+            self.raw[field_name] = kwargs.get(field_name)
 
     def validate(self):
         """Run validation on an instance of the class.
@@ -71,7 +71,7 @@ class Request(object):
         fields.ValidationError
             If validation does not succeed.
         """
-        for field, value in self.raw_fields.items():
+        for field, value in self.raw.items():
             value = setattr(self, field, value)
 
 
@@ -125,7 +125,7 @@ class MethodRequest(Request):
         return digest == self.token
 
 
-def online_score_handler(method_request, context, store):
+def online_score(method_request, context, store):
     request = OnlineScoreRequest(**method_request.arguments)
 
     try:
@@ -134,12 +134,10 @@ def online_score_handler(method_request, context, store):
         return str(exc), INVALID_REQUEST
 
     context["has"] = []
-    for key, attr in OnlineScoreRequest.__dict__.items():
-        if not isinstance(attr, fields.Field):
-            continue
-        value = getattr(request, key)
-        if value is not None and not attr.is_nullable(value):
-            context["has"].append(key)
+    for field_name, field_type in request.declared_fields:
+        value = getattr(request, field_name)
+        if value is not None and not field_type.is_nullable(value):
+            context["has"].append(field_name)
 
     if method_request.is_admin:
         response = {"score": 42}
@@ -157,7 +155,7 @@ def online_score_handler(method_request, context, store):
     return response, OK
 
 
-def clients_interests_handler(method_request, context, store):
+def clients_interests(method_request, context, store):
     request = ClientsInterestsRequest(**method_request.arguments)
 
     try:
@@ -179,8 +177,8 @@ def method_handler(raw_request, ctx, store):
     request = MethodRequest(**payload)
 
     allowed_methods = {
-        "online_score": online_score_handler,
-        "clients_interests": clients_interests_handler,
+        "online_score": online_score,
+        "clients_interests": clients_interests,
     }
 
     try:

@@ -24,7 +24,8 @@ class TestSuite(unittest.TestCase):
         self.settings = {}
 
     def get_response(self, request):
-        return api.method_handler({"body": request, "headers": self.headers}, self.context, self.settings)
+        handler = api.MethodHandler({"body": request, "headers": self.headers}, self.context, self.settings)
+        return handler.get_response()
 
     def set_valid_auth(self, request):
         if request.get("login") == api.ADMIN_LOGIN:
@@ -97,7 +98,6 @@ class TestSuite(unittest.TestCase):
         score = response.get("score")
         self.assertTrue(isinstance(score, (int, float)) and score >= 0, arguments)
         self.assertEqual(sorted(self.context["has"]), sorted(arguments.keys()))
-        self.setUp()
 
     def test_ok_score_admin_request(self):
         arguments = {"phone": "79175002040", "email": "stupnikov@otus.ru"}

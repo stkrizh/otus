@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import abc
 import json
 import datetime
 import logging
@@ -31,65 +32,56 @@ ERRORS = {
 }
 
 
-class ValidationMeta(type):
+class RequestMeta(type):
     """Metaclass for classes that would use validation.
 
-    Sets proper labels to instances of `Field` class. Also performs
-    class-wide validation.
+    Sets proper labels to instances of `Field` class. Saves fields
+    for validation to `declared_fields` attribute.
     """
 
     def __new__(mcls, name, bases, attrs):
-        for key, value in attrs.items():
-            if isinstance(value, fields.Field) and value.label is None:
-                value.label = key
+        declared_fields = []
 
-        cls = super(ValidationMeta, mcls).__new__(mcls, name, bases, attrs)
+        for key, value in attrs.items():
+            if isinstance(value, fields.Field):
+                if value.label is None:
+                    value.label = key
+                declared_fields.append((key, value))
+
+        attrs["declared_fields"] = declared_fields
+        cls = super(RequestMeta, mcls).__new__(mcls, name, bases, attrs)
         return cls
 
-    def __call__(cls, *args, **kwargs):
-        """Run validation on each instance of `Field` class.
-        """
-        if args:
-            raise ValueError("Positional arguments are not allowed.")
 
-        instance = super(ValidationMeta, cls).__call__()
-
-        for key, value in cls.__dict__.items():
-            if isinstance(value, fields.Field):
-                setattr(instance, key, kwargs.get(key))
-
-        if hasattr(cls, "validate"):
-            instance.validate()
-
-        return instance
-
-
-class Validation(object):
-    """Base class to use validation mechanism.
+class Request(object):
+    """Base class that uses fields validation.
     """
 
-    __metaclass__ = ValidationMeta
+    __metaclass__ = RequestMeta
 
-    def validation(self):
-        """Class-wide validation on fields.
+    def __init__(self, **kwargs):
+        self.raw = {}
+        for field_name, field_type in self.declared_fields:
+            self.raw[field_name] = kwargs.get(field_name)
+
+    def validate(self):
+        """Run validation on an instance of the class.
+
+        Raises
+        ------
+        fields.ValidationError
+            If validation does not succeed.
         """
-        pass
+        for field, value in self.raw.items():
+            value = setattr(self, field, value)
 
 
-class ClientsInterestsRequest(Validation):
+class ClientsInterestsRequest(Request):
     client_ids = fields.ClientIDsField(required=True)
     date = fields.DateField(required=False, nullable=True)
 
-    def __call__(self, ctx, is_admin=False):
-        ctx["nclients"] = len(self.client_ids)
 
-        interests = {
-            str(cid): scoring.get_interests(cid) for cid in self.client_ids
-        }
-        return interests
-
-
-class OnlineScoreRequest(Validation):
+class OnlineScoreRequest(Request):
     first_name = fields.CharField(required=False, nullable=True)
     last_name = fields.CharField(required=False, nullable=True)
     email = fields.EmailField(required=False, nullable=True)
@@ -98,6 +90,8 @@ class OnlineScoreRequest(Validation):
     gender = fields.GenderField(required=False, nullable=True)
 
     def validate(self):
+        super(OnlineScoreRequest, self).validate()
+
         if not any(
             (
                 self.first_name and self.last_name,
@@ -107,89 +101,178 @@ class OnlineScoreRequest(Validation):
         ):
             raise fields.ValidationError("Insufficient data.")
 
-    def __call__(self, ctx, is_admin=False):
-        for key, attr in self.__class__.__dict__.items():
-            if not isinstance(attr, fields.Field):
-                continue
 
-            value = getattr(self, key)
-            if value is not None and not attr.is_nullable(value):
-                ctx.setdefault("has", [])
-                ctx["has"].append(key)
-
-        if is_admin:
-            return {"score": 42}
-
-        score = scoring.get_score(
-            phone=self.phone,
-            email=self.email,
-            birthday=self.birthday,
-            gender=self.gender,
-            first_name=self.first_name,
-            last_name=self.last_name,
-        )
-
-        return {"score": score}
-
-
-class MethodRequest(Validation):
-    ALLOWED_METHODS = {
-        "online_score": OnlineScoreRequest,
-        "clients_interests": ClientsInterestsRequest,
-    }
-
+class MethodRequest(Request):
     account = fields.CharField(required=False, nullable=True)
     login = fields.CharField(required=True, nullable=True)
     token = fields.CharField(required=True, nullable=True, max_len=512)
     arguments = fields.ArgumentsField(required=True, nullable=True)
-    method = fields.CharField(
-        required=True, nullable=False, choices=ALLOWED_METHODS
-    )
+    method = fields.CharField(required=True, nullable=False)
 
     @property
     def is_admin(self):
         return self.login == ADMIN_LOGIN
 
-    def check_auth(self):
-        if self.is_admin:
+
+class Handler(object):
+    """Parent class for all handlers.
+
+    Attributes
+    ----------
+    request_class : RequestMeta
+        Should be a subclass of Request.
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    request_class = None
+
+    def __init__(self, request, context, store):
+        self.raw_request = request
+        self.context = context
+        self.store = store
+
+    def check_auth(self, request):
+        """Check if a request is authenticated.
+
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+        """
+        return True
+
+    @abc.abstractmethod
+    def process(self, request):
+        """Returns a response.
+
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+
+        Returns
+        -------
+        response: Tuple[dict, int]
+            Tuple of response and status
+        """
+        NotImplemented
+
+    def update_context(self, request):
+        """
+        Parameters
+        ----------
+        request : Request
+            Validated Request instance.
+        """
+        pass
+
+    def get_payload(self):
+        """Get a dictionary with data for validation.
+        """
+        return self.raw_request
+
+    def get_response(self):
+        """
+        Returns
+        -------
+        response: Tuple[dict, int]
+            Tuple of response and status
+        """
+        payload = self.get_payload()
+        request = self.request_class(**payload)
+
+        try:
+            request.validate()
+        except fields.ValidationError as exc:
+            return str(exc), INVALID_REQUEST
+
+        if not self.check_auth(request):
+            return None, FORBIDDEN
+
+        self.update_context(request)
+        return self.process(request)
+
+
+class ClientsInterestsHandler(Handler):
+    request_class = ClientsInterestsRequest
+
+    def update_context(self, request):
+        self.context["nclients"] = len(request.client_ids)
+
+    def process(self, request):
+        response = {
+            str(cid): scoring.get_interests(cid) for cid in request.client_ids
+        }
+        return response, OK
+
+
+class OnlineScoreHandler(Handler):
+    request_class = OnlineScoreRequest
+
+    def update_context(self, request):
+        self.context["has"] = []
+        for field_name, field_type in request.declared_fields:
+            value = getattr(request, field_name)
+            if value is not None and not field_type.is_nullable(value):
+                self.context["has"].append(field_name)
+
+    def process(self, request):
+        if self.context.get("is_admin"):
+            response = {"score": 42}
+        else:
+            score = scoring.get_score(
+                phone=request.phone,
+                email=request.email,
+                birthday=request.birthday,
+                gender=request.gender,
+                first_name=request.first_name,
+                last_name=request.last_name,
+            )
+            response = {"score": score}
+
+        return response, OK
+
+
+class MethodHandler(Handler):
+    request_class = MethodRequest
+
+    allowed_methods = {
+        "online_score": OnlineScoreHandler,
+        "clients_interests": ClientsInterestsHandler,
+    }
+
+    def check_auth(self, request):
+        if request.is_admin:
             digest = hashlib.sha512(
                 datetime.datetime.now().strftime("%Y%m%d%H") + ADMIN_SALT
             ).hexdigest()
         else:
             digest = hashlib.sha512(
-                self.account + self.login + SALT
+                request.account + request.login + SALT
             ).hexdigest()
 
-        return digest == self.token
+        return digest == request.token
 
-    def __call__(self, ctx):
-        method = self.ALLOWED_METHODS[self.method]
-        request = method(**self.arguments)
-        response = request(ctx, self.is_admin)
-        return response
+    def get_payload(self):
+        return self.raw_request.get("body", {})
 
+    def update_context(self, request):
+        self.context["is_admin"] = request.is_admin
 
-def method_handler(raw_request, ctx, store):
-    payload = raw_request.get("body", {})
+    def process(self, request):
+        method = self.allowed_methods.get(request.method)
 
-    try:
-        request = MethodRequest(**payload)
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
+        if method is None:
+            err = "Method is not allowed."
+            return err, INVALID_REQUEST
 
-    if not request.check_auth():
-        return None, FORBIDDEN
-
-    try:
-        response = request(ctx)
-    except fields.ValidationError as exc:
-        return str(exc), INVALID_REQUEST
-
-    return response, OK
+        handler = method(request.arguments, self.context, self.store)
+        return handler.get_response()
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
-    router = {"method": method_handler}
+    router = {"method": MethodHandler}
     store = None
 
     def get_request_id(self, headers):

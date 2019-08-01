@@ -296,11 +296,12 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
             )
             if path in self.router:
                 try:
-                    response, code = self.router[path](
+                    handler = self.router[path](
                         {"body": request, "headers": self.headers},
                         context,
                         self.store,
                     )
+                    response, code = handler.get_response()
                 except Exception as e:
                     logging.exception("Unexpected error: %s" % e)
                     code = INTERNAL_ERROR

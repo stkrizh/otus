@@ -260,3 +260,42 @@ class TestRegexField(unittest.TestCase):
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
             self.fail(case)
+
+
+class TestEmailField(unittest.TestCase):
+    @cases(
+        [
+            [True, False, "a" * 124 + "@a.a"],
+            [True, True, ""],
+            [False, False, None],
+            [True, False, u"email@test.com"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.EmailField(required=required, nullable=nullable)
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, None],
+            [True, False, ""],
+            [True, False, " aaa@aaa.aa"],
+            [True, False, "aaa@aaa.aa "],
+            [True, False, u"емэйл@почта.ру"],
+            [True, False, "a" * 256 + "@mail.com"],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, value = case
+
+        field = fields.EmailField(required=required, nullable=nullable)
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)

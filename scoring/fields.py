@@ -234,8 +234,13 @@ class BirthDayField(DateField):
 
     def validate(self, value):
         date = super(BirthDayField, self).validate(value)
+        now = dt.datetime.now()
 
-        if date < dt.datetime.now() - dt.timedelta(days=(365.25 * 70)):
+        if date < now - dt.timedelta(days=(365.25 * 70)):
+            err = u"Field `{}` is not a valid birthday."
+            raise ValidationError(err.format(self.label))
+
+        if date > now:
             err = u"Field `{}` is not a valid birthday."
             raise ValidationError(err.format(self.label))
 

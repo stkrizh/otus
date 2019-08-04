@@ -500,3 +500,43 @@ class TestGenderField(unittest.TestCase):
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
             self.fail(case)
+
+
+class TestClientIDsField(unittest.TestCase):
+    @cases(
+        [
+            [True, True, []],
+            [False, False, None],
+            [False, False, [0]],
+            [True, False, [1] * 10],
+            [True, False, [0, 4, 2, 2, 2, 4, 0, 1]],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.ClientIDsField(required=required, nullable=nullable)
+
+        try:
+            expected = list(set(value)) if value is not None else value
+            self.assertEqual(expected, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, None],
+            [True, False, []],
+            [True, False, (1, 2, 3)],
+            [True, False, [-1, 0, 1]],
+            [True, False, [1.0, 2, 3]],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, value = case
+
+        field = fields.ClientIDsField(required=required, nullable=nullable)
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)

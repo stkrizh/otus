@@ -272,7 +272,9 @@ class ClientIDsField(Field):
 
     def validate(self, value):
         if all(isinstance(item, int) and item >= 0 for item in value):
-            return value
+            unique = list(set(value))
+            if unique:
+                return unique
 
         err = u"Field `{}` must be a non-empty list with non-negative integers"
         raise ValidationError(err.format(self.label))

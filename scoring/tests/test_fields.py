@@ -404,3 +404,60 @@ class TestDateField(unittest.TestCase):
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
             self.fail(case)
+
+
+class TestBirthDayField(unittest.TestCase):
+    @cases(
+        [
+            [False, False, None],
+            [True, True, ""],
+        ]
+    )
+    def test_valid_empty(self, case):
+        required, nullable, value = case
+
+        field = fields.BirthDayField(required=required, nullable=nullable)
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, "31.12.2000"],
+            [True, False, "29.02.1992"],
+            [True, False, "10.10.1980"],
+            [True, False, u"15.03.1960"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.BirthDayField(required=required, nullable=nullable)
+
+        try:
+            cleaned = field.clean(value)
+            day, month, year = map(int, value.split("."))
+
+            self.assertEqual(day, cleaned.day, case)
+            self.assertEqual(month, cleaned.month, case)
+            self.assertEqual(year, cleaned.year, case)
+
+        except fields.ValidationError:
+            self.fail(case)
+
+    def test_invalid(self):
+        now = dt.datetime.now()
+
+        field = fields.BirthDayField()
+
+        with self.assertRaises(fields.ValidationError):
+            to_old = now - dt.timedelta(days=(70 * 365 + 18))
+            to_old_str = to_old.strftime("%d.%m.%Y")
+            field.clean(to_old_str)
+
+        with self.assertRaises(fields.ValidationError):
+            to_young = now + dt.timedelta(days=1)
+            to_young_str = to_young.strftime("%d.%m.%Y")
+            field.clean(to_young_str)

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 
 from scoring import fields
@@ -201,6 +203,57 @@ class TestCharField(unittest.TestCase):
 
         field = fields.CharField(
             required=required, nullable=nullable, max_len=max_len
+        )
+        field.choices = choices
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)
+
+
+class TestRegexField(unittest.TestCase):
+    @cases(
+        [
+            [True, False, 5, None, r"^1+$", "11"],
+            [True, False, 5, ("a", "b"), r"^1+$", "a"],
+            [False, False, 5, ("a", "b"), r"^1+$", None],
+            [True, True, 5, ("a", "b"), r"^1+$", ""],
+            [True, False, 5, None, r"abc", "abc  "],
+            [True, False, 128, None, ur"^привет", u"приветик"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, max_len, choices, pattern, value = case
+
+        field = fields.RegexField(
+            required=required,
+            nullable=nullable,
+            max_len=max_len,
+            pattern=pattern,
+        )
+        field.choices = choices
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, 3, None, r"^1+$", "11111"],
+            [True, False, 5, ("a", "b"), r"^1+$", "11111"],
+            [True, False, 5, None, ur"^привет", u"нет"],
+            [True, False, 5, None, r"abc", "  abc"],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, max_len, choices, pattern, value = case
+
+        field = fields.RegexField(
+            required=required,
+            nullable=nullable,
+            max_len=max_len,
+            pattern=pattern,
         )
         field.choices = choices
 

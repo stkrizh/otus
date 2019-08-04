@@ -12,6 +12,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 from . import fields
 from . import scoring
+from .store import Storage, StorageError
 
 
 SALT = "Otus"
@@ -202,7 +203,8 @@ class ClientsInterestsHandler(Handler):
 
     def process(self, request):
         response = {
-            str(cid): scoring.get_interests(cid) for cid in request.client_ids
+            str(cid): scoring.get_interests(self.store, cid)
+            for cid in request.client_ids
         }
         return response, OK
 
@@ -222,6 +224,7 @@ class OnlineScoreHandler(Handler):
             response = {"score": 42}
         else:
             score = scoring.get_score(
+                self.store,
                 phone=request.phone,
                 email=request.email,
                 birthday=request.birthday,
@@ -273,7 +276,7 @@ class MethodHandler(Handler):
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
     router = {"method": MethodHandler}
-    store = None
+    store = Storage()
 
     def get_request_id(self, headers):
         return headers.get("HTTP_X_REQUEST_ID", uuid.uuid4().hex)

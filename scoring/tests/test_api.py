@@ -2,6 +2,8 @@ import datetime
 import hashlib
 import unittest
 
+import mock
+
 from scoring import api
 from scoring.tests.helpers import cases
 
@@ -10,13 +12,17 @@ class TestSuite(unittest.TestCase):
     def setUp(self):
         self.context = {}
         self.headers = {}
-        self.settings = {}
+        self.store = mock.Mock(
+            cache_get=mock.Mock(return_value=None),
+            cache_set=mock.Mock(return_value=True),
+            get=mock.Mock(return_value='["aaa", "bbb"]'),
+        )
 
     def get_response(self, request):
         handler = api.MethodHandler(
             {"body": request, "headers": self.headers},
             self.context,
-            self.settings,
+            self.store,
         )
         return handler.get_response()
 
@@ -147,6 +153,11 @@ class TestSuite(unittest.TestCase):
         }
         self.set_valid_auth(request)
         response, code = self.get_response(request)
+
+        self.store.cache_get.assert_not_called()
+        self.store.cache_set.assert_not_called()
+        self.store.get.assert_not_called()
+
         self.assertEqual(api.INVALID_REQUEST, code, arguments)
         self.assertTrue(len(response))
 
@@ -182,6 +193,13 @@ class TestSuite(unittest.TestCase):
         }
         self.set_valid_auth(request)
         response, code = self.get_response(request)
+
+        self.store.cache_get.assert_called_once()
+        self.store.cache_set.assert_called_once()
+        self.store.get.assert_not_called()
+        self.store.cache_get.reset_mock()
+        self.store.cache_set.reset_mock()
+
         self.assertEqual(api.OK, code, arguments)
         score = response.get("score")
         self.assertTrue(
@@ -222,6 +240,11 @@ class TestSuite(unittest.TestCase):
         }
         self.set_valid_auth(request)
         response, code = self.get_response(request)
+
+        self.store.cache_get.assert_not_called()
+        self.store.cache_set.assert_not_called()
+        self.store.get.assert_not_called()
+
         self.assertEqual(api.INVALID_REQUEST, code, arguments)
         self.assertTrue(len(response))
 
@@ -244,6 +267,11 @@ class TestSuite(unittest.TestCase):
         }
         self.set_valid_auth(request)
         response, code = self.get_response(request)
+
+        self.store.cache_get.assert_not_called()
+        self.store.cache_set.assert_not_called()
+        self.store.get.assert_called()
+
         self.assertEqual(api.OK, code, arguments)
         self.assertEqual(len(arguments["client_ids"]), len(response))
         self.assertTrue(

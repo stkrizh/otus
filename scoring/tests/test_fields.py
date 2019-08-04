@@ -461,3 +461,42 @@ class TestBirthDayField(unittest.TestCase):
             to_young = now + dt.timedelta(days=1)
             to_young_str = to_young.strftime("%d.%m.%Y")
             field.clean(to_young_str)
+
+
+class TestGenderField(unittest.TestCase):
+    @cases(
+        [
+            [True, True, ""],
+            [True, False, 0],
+            [False, False, None],
+            [True, False, 1],
+            [True, False, 2],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.GenderField(required=required, nullable=nullable)
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, None],
+            [True, False, ""],
+            [True, False, "1"],
+            [True, False, -1],
+            [True, False, 1.0],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, value = case
+
+        field = fields.GenderField(required=required, nullable=nullable)
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import datetime as dt
 import unittest
 
 from scoring import fields
@@ -338,6 +339,67 @@ class TestPhoneField(unittest.TestCase):
         required, nullable, value = case
 
         field = fields.PhoneField(required=required, nullable=nullable)
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)
+
+
+class TestDateField(unittest.TestCase):
+    @cases(
+        [
+            [False, False, None],
+            [True, True, ""],
+        ]
+    )
+    def test_valid_empty(self, case):
+        required, nullable, value = case
+
+        field = fields.DateField(required=required, nullable=nullable)
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, "31.12.2017"],
+            [True, False, "29.02.2016"],
+            [True, False, "10.10.5016"],
+            [True, False, u"15.03.2000"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.DateField(required=required, nullable=nullable)
+
+        try:
+            cleaned = field.clean(value)
+            day, month, year = map(int, value.split("."))
+
+            self.assertEqual(day, cleaned.day, case)
+            self.assertEqual(month, cleaned.month, case)
+            self.assertEqual(year, cleaned.year, case)
+
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, None],
+            [False, False, ""],
+            [False, False, "12.31.2017"],
+            [False, False, " 31.12.2017"],
+            [False, False, "29.02.2017"],
+            [False, False, "10.10.10000"],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, value = case
+
+        field = fields.DateField(required=required, nullable=nullable)
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)

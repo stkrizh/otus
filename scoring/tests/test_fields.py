@@ -161,3 +161,49 @@ class TestFieldClass(unittest.TestCase):
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
             self.fail(case)
+
+
+class TestCharField(unittest.TestCase):
+    @cases(
+        [
+            [True, False, 5, None, " "],
+            [True, False, 5, None, " " * 5],
+            [False, False, 0, None, None],
+            [False, True, 5, ("a", "b"), None],
+            [False, True, 5, ("a", "b"), ""],
+            [False, False, 1, ("aa", "bb"), "aa"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, max_len, choices, value = case
+
+        field = fields.CharField(
+            required=required, nullable=nullable, max_len=max_len
+        )
+        field.choices = choices
+
+        try:
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, 5, None, ""],
+            [True, False, 5, None, " " * 6],
+            [False, True, 0, None, " "],
+            [False, True, 5, ("a", "b"), "b "],
+            [False, True, 5, None, 42],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, max_len, choices, value = case
+
+        field = fields.CharField(
+            required=required, nullable=nullable, max_len=max_len
+        )
+        field.choices = choices
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)

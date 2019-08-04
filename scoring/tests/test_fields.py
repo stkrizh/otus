@@ -299,3 +299,46 @@ class TestEmailField(unittest.TestCase):
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
             self.fail(case)
+
+
+class TestPhoneField(unittest.TestCase):
+    @cases(
+        [
+            [False, False, None],
+            [True, True, ""],
+            [True, False, "71234567890"],
+            [True, False, 71234567890],
+            [True, False, u"71234567890"],
+        ]
+    )
+    def test_valid(self, case):
+        required, nullable, value = case
+
+        field = fields.PhoneField(required=required, nullable=nullable)
+
+        try:
+            value = str(value) if value else value
+            self.assertEqual(value, field.clean(value), case)
+        except fields.ValidationError:
+            self.fail(case)
+
+    @cases(
+        [
+            [True, False, None],
+            [True, False, ""],
+            [True, False, "81234567890"],
+            [True, False, "712345678901"],
+            [True, False, " 71234567890"],
+            [True, False, "71234567890 "],
+            [True, False, 81234567890],
+            [True, False, 7123456789],
+        ]
+    )
+    def test_invalid(self, case):
+        required, nullable, value = case
+
+        field = fields.PhoneField(required=required, nullable=nullable)
+
+        with self.assertRaises(fields.ValidationError):
+            field.clean(value)
+            self.fail(case)

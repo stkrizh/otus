@@ -29,7 +29,9 @@ class Field(object):
     allowed_type = None
     choices = None
 
-    def __init__(self, label=None, required=True, nullable=False, choices=None):
+    def __init__(
+        self, label=None, required=True, nullable=False, choices=None
+    ):
         self.label = label
         self.required = required
         self.nullable = nullable

@@ -29,7 +29,9 @@ class Field(object):
     allowed_type = None
     choices = None
 
-    def __init__(self, label=None, required=True, nullable=False, choices=None):
+    def __init__(
+        self, label=None, required=True, nullable=False, choices=None
+    ):
         self.label = label
         self.required = required
         self.nullable = nullable
@@ -234,8 +236,13 @@ class BirthDayField(DateField):
 
     def validate(self, value):
         date = super(BirthDayField, self).validate(value)
+        now = dt.datetime.now()
 
-        if date < dt.datetime.now() - dt.timedelta(days=(365.25 * 70)):
+        if date < now - dt.timedelta(days=(365.25 * 70)):
+            err = u"Field `{}` is not a valid birthday."
+            raise ValidationError(err.format(self.label))
+
+        if date > now:
             err = u"Field `{}` is not a valid birthday."
             raise ValidationError(err.format(self.label))
 
@@ -267,7 +274,9 @@ class ClientIDsField(Field):
 
     def validate(self, value):
         if all(isinstance(item, int) and item >= 0 for item in value):
-            return value
+            unique = list(set(value))
+            if unique:
+                return unique
 
         err = u"Field `{}` must be a non-empty list with non-negative integers"
         raise ValidationError(err.format(self.label))

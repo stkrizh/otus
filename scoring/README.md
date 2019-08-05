@@ -2,17 +2,23 @@
 Otus Scoring API task
 
 ## **Requirements**
-Python 2.7
+* Python 2.7
+  - mock
+  - redis
+  - requests
+* Redis-server
 
 ## **Installation**
 ```
 git clone https://github.com/stkrizh/otus.git
 cd otus
+pip install -r scoring/requirements.txt
 ```
 
 ## **Tests**
 ```
-python -m scoring.test
+python -m scoring.tests.unit
+python -m scoring.tests.integration
 ```
 
 ## **To run HTTP-server**

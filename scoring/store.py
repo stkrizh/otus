@@ -59,7 +59,7 @@ class Storage(object):
         Parameters
         ----------
         key : str
-    
+
         Returns
         -------
         value : Any

@@ -12,7 +12,7 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 from . import fields
 from . import scoring
-from .store import Storage, StorageError
+from .store import Storage
 
 
 SALT = "Otus"
@@ -292,7 +292,7 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
         except Exception:
             code = BAD_REQUEST
 
-        if request:
+        if request is not None:
             path = self.path.strip("/")
             logging.info(
                 "%s: %s %s" % (self.path, data_string, context["request_id"])

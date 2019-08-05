@@ -274,6 +274,7 @@ class TestSuite(unittest.TestCase):
 
         self.assertEqual(api.OK, code, arguments)
         self.assertEqual(len(arguments["client_ids"]), len(response))
+
         self.assertTrue(
             all(
                 v

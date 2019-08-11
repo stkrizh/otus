@@ -1,6 +1,7 @@
 import datetime as dt
 import logging
 import socket
+import threading
 import time
 
 from typing import Tuple
@@ -9,10 +10,8 @@ from typing import Tuple
 from .types import HTTPMethod, HTTPRequest, HTTPResponse, HTTPStatus
 
 
-BIND_ADDRESS = ("", 8000)
+BIND_ADDRESS = ("", 8080)
 BACKLOG = 10
-
-
 REQUEST_SOCKET_TIMEOUT = 10
 REQUEST_MAX_SIZE = 8 * 1024
 
@@ -89,7 +88,7 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
 
 
 def send_error(conn: socket.socket, status: HTTPStatus) -> None:
-    """Send HTTP response with error.
+    """Send HTTP response with an error status code.
     """
     response = HTTPResponse(status=status, body="")
     send_response(conn, response)
@@ -122,17 +121,52 @@ def handle_client_connection(conn: socket.socket, addr: Tuple) -> None:
     logging.debug(f"{addr}: connection closed")
 
 
-def serve_forever() -> None:
-    """Entry point.
+def serve_forever(
+    listening_socket: socket.socket, thread_id: int, run_event: threading.Event
+) -> None:
+    """Forever serve incoming connections on a listening socket.
+    """
+    logging.info(f"Worker-{thread_id} has been started")
+
+    listening_socket.settimeout(1)
+
+    while True:
+        try:
+            conn, addr = listening_socket.accept()
+            handle_client_connection(conn, addr)
+        except socket.timeout:
+            if run_event.is_set():
+                continue
+            break
+
+    logging.info(f"Worker-{thread_id} has been stopped")
+    return None
+
+
+def start_workers(n_workers: int = 4) -> None:
+    """Forever serve incoming connections on a listening socket.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(BIND_ADDRESS)
         sock.listen(BACKLOG)
 
+        run_event = threading.Event()
+        run_event.set()
+
+        pool = []
+        for i in range(1, n_workers + 1):
+            thread = threading.Thread(
+                target=serve_forever, args=(sock, i, run_event)
+            )
+            pool.append(thread)
+            thread.start()
+
         try:
             while True:
-                conn, addr = sock.accept()
-                handle_client_connection(conn, addr)
+                time.sleep(1)
 
         except KeyboardInterrupt:
-            logging.info("Server stopped")
+            logging.info("Server is stopping")
+            run_event.clear()
+            for worker in pool:
+                worker.join()

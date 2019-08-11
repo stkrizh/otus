@@ -1,3 +1,3 @@
 from . import httpd
 
-httpd.serve_forever()
+httpd.start_workers(20)

@@ -10,7 +10,7 @@ BIND_ADDRESS = ("", 8000)
 BACKLOG = 10
 
 
-REQUEST_SOCKET_TIMEOUT = 5
+REQUEST_SOCKET_TIMEOUT = 10
 REQUEST_MAX_SIZE = 8 * 1024
 
 
@@ -83,16 +83,39 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
     conn.sendall("\r\n".join(data).encode("utf-8"))
 
 
-def serve_forever():
+def send_error(conn: socket.socket, status: HTTPStatus) -> None:
+    """Send HTTP response with error.
+    """
+    response = HTTPResponse(
+        status=status,
+        body=""
+    )
+    send_response(conn, response)
+
+
+def serve_forever() -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(BIND_ADDRESS)
         s.listen()
 
-        while True:
-            conn, addr = s.accept()
-            logging.info(f"Connected by: {addr}")
+        try:
+            while True:
+                conn, addr = s.accept()
+                logging.info(f"Connected by: {addr}")
 
-            with conn:
-                request = parse_request(conn)
-                response = handle_request(request)
-                send_response(conn, response)
+                with conn:
+                    try:
+                        request = parse_request(conn)
+                        response = handle_request(request)
+                        send_response(conn, response)
+                    except HTTPException as exc:
+                        status = exc.args[0]
+                        logging.info(f"Error: {status} for {addr}")
+                        send_error(conn, status)
+                    except Exception:
+                        logging.exception()
+                        send_error(conn, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+        except KeyboardInterrupt:
+            logging.info("Interrupted by user")
+            return None

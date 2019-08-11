@@ -16,6 +16,7 @@ class HTTPStatus(enum.Enum):
     METHOD_NOT_ALLOWED = 405, "Method Not Allowed"
     REQUEST_TIMEOUT = 408, "Request Timeout"
     ENTITY_TOO_LARGE = 413, "Entity Too Large"
+    INTERNAL_SERVER_ERROR = 500, "Internal Server Error"
     NOT_IMPLEMENTED = 501, "Not Implemented"
     HTTP_VERSION_NOT_SUPPORTED = 505, "HTTP Version Not Supported"
 

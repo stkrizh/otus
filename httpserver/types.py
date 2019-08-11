@@ -7,6 +7,9 @@ class HTTPMethod(enum.Enum):
     GET = "GET"
     HEAD = "HEAD"
 
+    def __str__(self):
+        return self.value
+
 
 class HTTPStatus(enum.Enum):
     OK = 200, "OK"

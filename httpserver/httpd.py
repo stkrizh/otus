@@ -1,6 +1,9 @@
 import datetime as dt
 import logging
 import socket
+import time
+
+from typing import Tuple
 
 
 from .types import HTTPMethod, HTTPRequest, HTTPResponse, HTTPStatus
@@ -59,8 +62,7 @@ def handle_request(request: HTTPRequest) -> HTTPResponse:
     """
     method, target = request
     response = HTTPResponse(
-        status=HTTPStatus.OK,
-        body=f"Method: {method}\nTarget: {target}\n\n"
+        status=HTTPStatus.OK, body=f"Method: {method}\nTarget: {target}\n\n"
     )
     return response
 
@@ -77,45 +79,60 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
         f"Server: Fancy Python HTTP Server",
         f"Connection: close",
         f"",
-        f"{response.body}"
+        f"{response.body}",
     )
 
-    conn.sendall("\r\n".join(data).encode("utf-8"))
+    try:
+        conn.sendall("\r\n".join(data).encode("utf-8"))
+    except socket.timeout:
+        pass
 
 
 def send_error(conn: socket.socket, status: HTTPStatus) -> None:
     """Send HTTP response with error.
     """
-    response = HTTPResponse(
-        status=status,
-        body=""
-    )
+    response = HTTPResponse(status=status, body="")
     send_response(conn, response)
 
 
+def handle_client_connection(conn: socket.socket, addr: Tuple) -> None:
+    """Handle an accepted client connection.
+    """
+    logging.debug(f"Connected by: {addr}")
+
+    with conn:
+        try:
+            request = parse_request(conn)
+            logging.info(f"{addr}: {request.method} {request.target}")
+            response = handle_request(request)
+        except HTTPException as exc:
+            response = HTTPResponse(status=exc.args[0], body="")
+            logging.info(f'{addr}: HTTP exception "{response.status}"')
+        except Exception:
+            logging.exception(f"{addr}: Unexpected error")
+            response = HTTPResponse(
+                status=HTTPStatus.INTERNAL_SERVER_ERROR, body=""
+            )
+
+        try:
+            send_response(conn, response)
+        except Exception:
+            logging.exception(f"{addr}: Can't send a response")
+
+    logging.debug(f"{addr}: connection closed")
+
+
 def serve_forever() -> None:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(BIND_ADDRESS)
-        s.listen()
+    """Entry point.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(BIND_ADDRESS)
+        sock.listen(BACKLOG)
 
         try:
             while True:
-                conn, addr = s.accept()
-                logging.info(f"Connected by: {addr}")
-
-                with conn:
-                    try:
-                        request = parse_request(conn)
-                        response = handle_request(request)
-                        send_response(conn, response)
-                    except HTTPException as exc:
-                        status = exc.args[0]
-                        logging.info(f"Error: {status} for {addr}")
-                        send_error(conn, status)
-                    except Exception:
-                        logging.exception()
-                        send_error(conn, HTTPStatus.INTERNAL_SERVER_ERROR)
+                conn, addr = sock.accept()
+                handle_client_connection(conn, addr)
 
         except KeyboardInterrupt:
-            logging.info("Interrupted by user")
-            return None
+            logging.info("Server stopped")

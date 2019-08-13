@@ -29,6 +29,19 @@ def parse_args():
         default=4,
         type=int,
     )
+    parser.add_argument(
+        "-a",
+        "--address",
+        help="Server address [Default: 127.0.0.1]",
+        default="127.0.0.1"
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        help="Listen port [Default: 8080]",
+        default=8080,
+        type=int
+    )
 
     return parser.parse_args()
 
@@ -45,4 +58,9 @@ if not document_root.is_dir():
     logging.error("Document root is not a directory.")
     sys.exit()
 
-httpd.start_workers(document_root.resolve(), n_workers)
+port = args.port
+if port < 1:
+    logging.error("Ivalid port to listen.")
+    sys.exit()
+
+httpd.start_workers(args.address, port, document_root.resolve(), n_workers)

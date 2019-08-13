@@ -20,8 +20,8 @@ ALLOWED_CONTENT_TYPES = {
     ".png": "image/png",
     ".gif": "image/gif",
     ".swf": "application/x-shockwave-flash",
+    ".txt": "text/plain",
 }
-BIND_ADDRESS = ("127.0.0.1", 8080)
 BACKLOG = 10
 REQUEST_SOCKET_TIMEOUT = 10
 REQUEST_CHUNK_SIZE = 1024
@@ -94,15 +94,15 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     except FileNotFoundError:
         return HTTPResponse.error(HTTPStatus.NOT_FOUND)
 
-    if path.suffix not in ALLOWED_CONTENT_TYPES:
-        return HTTPResponse.error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
-
     root_parts = document_root.parts
     path_parts = path.parts
 
     # To disallow relative pathes
     if root_parts != path_parts[: len(root_parts)]:
         return HTTPResponse.error(HTTPStatus.FORBIDDEN)
+
+    if path.suffix not in ALLOWED_CONTENT_TYPES:
+        return HTTPResponse.error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
     stat = path.stat()
     content_length = stat.st_size
@@ -112,7 +112,7 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
         status=HTTPStatus.OK,
         body=body,
         content_type=ALLOWED_CONTENT_TYPES[path.suffix],
-        content_length=content_length
+        content_length=content_length,
     )
 
 
@@ -200,11 +200,23 @@ def serve_forever(
     return None
 
 
-def start_workers(document_root: Path, n_workers: int) -> None:
-    """Forever serve incoming connections on a listening socket.
+def start_workers(
+    address: str, port: int, document_root: Path, n_workers: int
+) -> None:
+    """Open a listener socket and start workers in separate threads.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(BIND_ADDRESS)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        try:
+            sock.bind((address, port))
+        except PermissionError:
+            logging.error(f"Permission denied: {address}:{port}")
+            return None
+        except OSError:
+            logging.error(f"Invalid address / port: {address}:{port}")
+            return None
+
         sock.listen(BACKLOG)
 
         run_event = threading.Event()
@@ -218,8 +230,9 @@ def start_workers(document_root: Path, n_workers: int) -> None:
             pool.append(thread)
             thread.start()
 
-        addr = ":".join(map(str, BIND_ADDRESS))
-        logging.info(f"Running on http://{addr}/ (Press CTRL+C to quit)")
+        logging.info(
+            f"Running on http://{address}:{port}/ (Press CTRL+C to quit)"
+        )
 
         try:
             while True:

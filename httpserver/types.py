@@ -33,6 +33,9 @@ class HTTPRequest(NamedTuple):
     method: HTTPMethod
     target: str
 
+    def clean_target(self):
+        return self.target.partition("/")[-1].partition("?")[0]
+
 
 class HTTPResponse(NamedTuple):
     status: HTTPStatus

@@ -82,9 +82,14 @@ def parse_request(conn: socket.socket) -> HTTPRequest:
 def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     """Process request.
     """
-    method, target = request
+    method = request.method
+    target = request.clean_target()
 
-    path: Path = document_root / target.partition("/")[-1]
+    path: Path = document_root / target
+
+    # Probably it's a pointless part due to pathlib removes trailing slashes
+    if path.is_file() and target.endswith("/"):
+        return HTTPResponse.error(HTTPStatus.NOT_FOUND)
 
     if path.is_dir():
         path /= "index.html"
@@ -124,7 +129,7 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
     headers = (
         f"HTTP/1.1 {response.status}",
         f"Date: {now}",
-        f"Content-Type: {response.content_type}; charset=UTF-8",
+        f"Content-Type: {response.content_type}",
         f"Content-Length: {response.content_length}",
         f"Server: Fancy-Python-HTTP-Server",
         f"Connection: close",

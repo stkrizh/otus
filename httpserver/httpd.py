@@ -28,7 +28,7 @@ REQUEST_MAX_SIZE = 8 * 1024
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="[%(asctime)s] %(levelname).1s %(message)s",
     datefmt="%Y.%m.%d %H:%M:%S",
 )
@@ -78,7 +78,6 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
         path /= "index.html"
 
     try:
-        print(path)
         path = path.resolve(strict=True)
     except FileNotFoundError:
         return HTTPResponse.error(HTTPStatus.NOT_FOUND)
@@ -109,7 +108,8 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
         f"HTTP/1.1 {response.status}",
         f"Date: {now}",
         f"Content-Type: {response.content_type}; charset=UTF-8",
-        f"Server: Fancy Python HTTP Server",
+        f"Content-Length: {len(response.body)}"
+        f"Server: Fancy-Python-HTTP-Server",
         f"Connection: close",
         f"",
     )
@@ -166,7 +166,7 @@ def serve_forever(
 ) -> None:
     """Forever serve incoming connections on a listening socket.
     """
-    logging.info(f"Worker-{thread_id} has been started.")
+    logging.debug(f"Worker-{thread_id} has been started.")
 
     listening_socket.settimeout(1)
 
@@ -179,7 +179,7 @@ def serve_forever(
                 continue
             break
 
-    logging.info(f"Worker-{thread_id} has been stopped.")
+    logging.debug(f"Worker-{thread_id} has been stopped.")
     return None
 
 

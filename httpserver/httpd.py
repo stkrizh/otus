@@ -8,8 +8,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Tuple
 
-
 from .types import HTTPMethod, HTTPRequest, HTTPResponse, HTTPStatus
+
 
 ALLOWED_CONTENT_TYPES = {
     ".html": "text/html",
@@ -21,9 +21,10 @@ ALLOWED_CONTENT_TYPES = {
     ".gif": "image/gif",
     ".swf": "application/x-shockwave-flash",
 }
-BIND_ADDRESS = ("", 8080)
+BIND_ADDRESS = ("127.0.0.1", 8080)
 BACKLOG = 10
 REQUEST_SOCKET_TIMEOUT = 10
+REQUEST_CHUNK_SIZE = 1024
 REQUEST_MAX_SIZE = 8 * 1024
 
 
@@ -44,20 +45,31 @@ def parse_request(conn: socket.socket) -> HTTPRequest:
     conn.settimeout(REQUEST_SOCKET_TIMEOUT)
 
     try:
-        data = conn.recv(REQUEST_MAX_SIZE)
+        recieved = bytearray()
+
+        while True:
+            if len(recieved) > REQUEST_MAX_SIZE:
+                break
+
+            if b"\r\n\r\n" in recieved:
+                break
+
+            chunk = conn.recv(REQUEST_CHUNK_SIZE)
+            if not chunk:
+                break
+
+            recieved += chunk
+
     except socket.timeout:
         raise HTTPException(HTTPStatus.REQUEST_TIMEOUT)
 
-    raw_request_line, *_ = data.partition(b"\r\n")
+    raw_request_line, *_ = recieved.partition(b"\r\n")
     request_line = str(raw_request_line, "iso-8859-1")
 
     try:
         raw_method, raw_target, version = request_line.split()
     except ValueError:
         raise HTTPException(HTTPStatus.BAD_REQUEST)
-
-    if version != "HTTP/1.1":
-        raise HTTPException(HTTPStatus.HTTP_VERSION_NOT_SUPPORTED)
 
     try:
         method = HTTPMethod[raw_method]
@@ -108,7 +120,7 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
         f"HTTP/1.1 {response.status}",
         f"Date: {now}",
         f"Content-Type: {response.content_type}; charset=UTF-8",
-        f"Content-Length: {len(response.body)}"
+        f"Content-Length: {len(response.body)}",
         f"Server: Fancy-Python-HTTP-Server",
         f"Connection: close",
         f"",
@@ -200,6 +212,9 @@ def start_workers(document_root: Path, n_workers: int) -> None:
             )
             pool.append(thread)
             thread.start()
+
+        addr = ":".join(map(str, BIND_ADDRESS))
+        logging.info(f"Running on http://{addr}/ (Press CTRL+C to quit)")
 
         try:
             while True:

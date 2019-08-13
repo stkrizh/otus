@@ -97,17 +97,22 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     if path.suffix not in ALLOWED_CONTENT_TYPES:
         return HTTPResponse.error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
-    # To disallow relative pathes
     root_parts = document_root.parts
     path_parts = path.parts
 
+    # To disallow relative pathes
     if root_parts != path_parts[: len(root_parts)]:
         return HTTPResponse.error(HTTPStatus.FORBIDDEN)
 
+    stat = path.stat()
+    content_length = stat.st_size
+    body = b"" if method is HTTPMethod.HEAD else path.read_bytes()
+
     return HTTPResponse(
         status=HTTPStatus.OK,
-        body=path.read_bytes(),
+        body=body,
         content_type=ALLOWED_CONTENT_TYPES[path.suffix],
+        content_length=content_length
     )
 
 
@@ -120,7 +125,7 @@ def send_response(conn: socket.socket, response: HTTPResponse) -> None:
         f"HTTP/1.1 {response.status}",
         f"Date: {now}",
         f"Content-Type: {response.content_type}; charset=UTF-8",
-        f"Content-Length: {len(response.body)}",
+        f"Content-Length: {response.content_length}",
         f"Server: Fancy-Python-HTTP-Server",
         f"Connection: close",
         f"",

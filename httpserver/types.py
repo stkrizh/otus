@@ -38,11 +38,14 @@ class HTTPResponse(NamedTuple):
     status: HTTPStatus
     body: bytes
     content_type: str
+    content_length: int
 
     @classmethod
     def error(cls, status: HTTPStatus):
+        body = str(status).encode("utf-8")
         return cls(
             status=status,
-            body=str(status).encode("utf-8"),
+            body=body,
             content_type="text/plain",
+            content_length=len(body)
         )

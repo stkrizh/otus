@@ -1,5 +1,24 @@
 import hashlib
-import json
+
+
+def build_score_key(
+    first_name=None,
+    last_name=None,
+    email=None,
+    phone=None,
+    gender=None,
+    birthday=None,
+):
+    key_parts = [
+        first_name or "",
+        last_name or "",
+        email or "",
+        phone or "",
+        str(gender) if gender is not None else "",
+        birthday.strftime("%Y%m%d") if birthday is not None else "",
+    ]
+    key = "uid:" + hashlib.md5("".join(key_parts)).hexdigest()
+    return key
 
 
 def get_score(
@@ -11,13 +30,9 @@ def get_score(
     first_name=None,
     last_name=None,
 ):
-    key_parts = [
-        first_name or "",
-        last_name or "",
-        phone or "",
-        birthday.strftime("%Y%m%d") if birthday is not None else "",
-    ]
-    key = "uid:" + hashlib.md5("".join(key_parts)).hexdigest()
+    key = build_score_key(
+        first_name, last_name, email, phone, gender, birthday
+    )
 
     # try get from cache,
     # fallback to heavy calculation in case of cache miss
@@ -41,4 +56,4 @@ def get_score(
 
 def get_interests(store, cid):
     r = store.get("i:%s" % cid)
-    return json.loads(r) if r else []
+    return r

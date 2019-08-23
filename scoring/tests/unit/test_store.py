@@ -14,6 +14,7 @@ class TestStorage(unittest.TestCase):
             **{
                 "get.side_effect": ConnectionError,
                 "set.side_effect": ConnectionError,
+                "smembers.side_effect": ConnectionError
             }
         )
 

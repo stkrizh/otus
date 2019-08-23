@@ -15,7 +15,7 @@ class TestSuite(unittest.TestCase):
         self.store = mock.Mock(
             cache_get=mock.Mock(return_value=None),
             cache_set=mock.Mock(return_value=True),
-            get=mock.Mock(return_value='["aaa", "bbb"]'),
+            get=mock.Mock(return_value=["aaa", "bbb"]),
         )
 
     def get_response(self, request):

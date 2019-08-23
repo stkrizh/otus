@@ -38,7 +38,7 @@ class TestFieldClass(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value))
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -55,7 +55,6 @@ class TestFieldClass(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
     @cases([0, "", []])
     def test_nullable_required(self, value):
@@ -65,7 +64,6 @@ class TestFieldClass(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             not_nullable_field.clean(value)
-            self.fail(value)
 
         nullable_field = fields.Field(nullable=True)
         self.assertIs(True, nullable_field.required)
@@ -100,7 +98,7 @@ class TestFieldClass(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -117,7 +115,6 @@ class TestFieldClass(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
     @cases(
         [
@@ -141,7 +138,7 @@ class TestFieldClass(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -163,7 +160,6 @@ class TestFieldClass(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestCharField(unittest.TestCase):
@@ -188,7 +184,7 @@ class TestCharField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -209,7 +205,6 @@ class TestCharField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestRegexField(unittest.TestCase):
@@ -237,14 +232,14 @@ class TestRegexField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
             [True, False, 3, None, r"^1+$", "11111"],
             [True, False, 5, ("a", "b"), r"^1+$", "11111"],
             [True, False, 5, None, ur"^привет", u"нет"],
-            [True, False, 5, None, r"abc", "  abc"],
+            [True, False, 5, None, r"abc", " abc"],
         ]
     )
     def test_invalid(self, case):
@@ -260,7 +255,6 @@ class TestRegexField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestEmailField(unittest.TestCase):
@@ -280,7 +274,7 @@ class TestEmailField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -299,7 +293,6 @@ class TestEmailField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestPhoneField(unittest.TestCase):
@@ -321,7 +314,7 @@ class TestPhoneField(unittest.TestCase):
             value = str(value) if value else value
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -342,16 +335,10 @@ class TestPhoneField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestDateField(unittest.TestCase):
-    @cases(
-        [
-            [False, False, None],
-            [True, True, ""],
-        ]
-    )
+    @cases([[False, False, None], [True, True, ""]])
     def test_valid_empty(self, case):
         required, nullable, value = case
 
@@ -360,7 +347,7 @@ class TestDateField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -384,7 +371,7 @@ class TestDateField(unittest.TestCase):
             self.assertEqual(year, cleaned.year, case)
 
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -403,16 +390,10 @@ class TestDateField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestBirthDayField(unittest.TestCase):
-    @cases(
-        [
-            [False, False, None],
-            [True, True, ""],
-        ]
-    )
+    @cases([[False, False, None], [True, True, ""]])
     def test_valid_empty(self, case):
         required, nullable, value = case
 
@@ -421,7 +402,7 @@ class TestBirthDayField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -445,7 +426,7 @@ class TestBirthDayField(unittest.TestCase):
             self.assertEqual(year, cleaned.year, case)
 
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     def test_invalid(self):
         now = dt.datetime.now()
@@ -481,7 +462,7 @@ class TestGenderField(unittest.TestCase):
         try:
             self.assertEqual(value, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -499,7 +480,6 @@ class TestGenderField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)
 
 
 class TestClientIDsField(unittest.TestCase):
@@ -521,7 +501,7 @@ class TestClientIDsField(unittest.TestCase):
             expected = list(set(value)) if value is not None else value
             self.assertEqual(expected, field.clean(value), case)
         except fields.ValidationError:
-            self.fail(case)
+            self.fail("ValidationError raised")
 
     @cases(
         [
@@ -539,4 +519,3 @@ class TestClientIDsField(unittest.TestCase):
 
         with self.assertRaises(fields.ValidationError):
             field.clean(value)
-            self.fail(case)

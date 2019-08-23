@@ -66,11 +66,11 @@ class Storage(object):
 
     @retry(raise_on_failure=True)
     def get(self, key):
-        """Get value by specified key from the storage.
+        """Get a list of values by specified key from the storage.
 
         Raises
         ------
         StorageError
             If the storage is not available.
         """
-        return self.redis_client.get(key)
+        return list(self.redis_client.smembers(key))

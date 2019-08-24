@@ -39,31 +39,37 @@ class HTTPException(Exception):
     pass
 
 
-def parse_request(conn: socket.socket) -> HTTPRequest:
-    """Read data from client socket and parse the request.
+def receive(conn: socket.socket) -> bytearray:
+    """Read raw bytes from a client socket.
     """
     conn.settimeout(REQUEST_SOCKET_TIMEOUT)
 
     try:
-        recieved = bytearray()
+        received = bytearray()
 
         while True:
-            if len(recieved) > REQUEST_MAX_SIZE:
+            if len(received) > REQUEST_MAX_SIZE:
                 break
 
-            if b"\r\n\r\n" in recieved:
+            if b"\r\n\r\n" in received:
                 break
 
             chunk = conn.recv(REQUEST_CHUNK_SIZE)
             if not chunk:
                 break
 
-            recieved += chunk
+            received += chunk
 
     except socket.timeout:
         raise HTTPException(HTTPStatus.REQUEST_TIMEOUT)
 
-    raw_request_line, *_ = recieved.partition(b"\r\n")
+    return received
+
+
+def parse_request(received: bytearray) -> HTTPRequest:
+    """Parse request from raw bytes received from a client.
+    """
+    raw_request_line, *_ = received.partition(b"\r\n")
     request_line = str(raw_request_line, "iso-8859-1")
 
     try:
@@ -160,7 +166,8 @@ def handle_client_connection(
 
     with conn:
         try:
-            request = parse_request(conn)
+            raw_bytes = receive(conn)
+            request = parse_request(raw_bytes)
             response = handle_request(request, document_root)
             logging.info(f"{addr}: {request.method} {request.target}")
         except HTTPException as exc:
@@ -180,7 +187,7 @@ def handle_client_connection(
     logging.debug(f"{addr}: connection closed.")
 
 
-def serve_forever(
+def wait_connection(
     listening_socket: socket.socket,
     thread_id: int,
     document_root: Path,
@@ -197,7 +204,7 @@ def serve_forever(
     return None
 
 
-def start_workers(
+def serve_forever(
     address: str, port: int, document_root: Path, n_workers: int
 ) -> None:
     """Open a listener socket and start workers in separate threads.
@@ -218,7 +225,7 @@ def start_workers(
 
         for i in range(1, n_workers + 1):
             thread = threading.Thread(
-                target=serve_forever, args=(sock, i, document_root)
+                target=wait_connection, args=(sock, i, document_root)
             )
             thread.daemon = True
             thread.start()

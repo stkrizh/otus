@@ -33,14 +33,14 @@ def parse_args():
         "-a",
         "--address",
         help="Server address [Default: 127.0.0.1]",
-        default="127.0.0.1"
+        default="127.0.0.1",
     )
     parser.add_argument(
         "-p",
         "--port",
         help="Listen port [Default: 8080]",
         default=8080,
-        type=int
+        type=int,
     )
 
     return parser.parse_args()
@@ -63,4 +63,4 @@ if port < 1:
     logging.error("Ivalid port to listen.")
     sys.exit()
 
-httpd.start_workers(args.address, port, document_root.resolve(), n_workers)
+httpd.serve_forever(args.address, port, document_root.resolve(), n_workers)

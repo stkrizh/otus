@@ -33,7 +33,7 @@ class HttpServer(unittest.TestCase):
 
         cls.port = find_free_port()
         cls.server = mp.Process(
-            target=httpd.start_workers,
+            target=httpd.serve_forever,
             args=(cls.host, cls.port, cls.document_root, cls.n_workers),
         )
         cls.server.daemon = True

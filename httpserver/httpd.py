@@ -29,7 +29,7 @@ REQUEST_MAX_SIZE = 8 * 1024
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="[%(asctime)s] %(levelname).1s %(message)s",
     datefmt="%Y.%m.%d %H:%M:%S",
 )
@@ -91,7 +91,7 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     method = request.method
     target = request.clean_target()
 
-    path: Path = document_root / target
+    path = Path(document_root, target).resolve()
 
     # Probably it's a pointless part due to pathlib removes trailing slashes
     if path.is_file() and target.endswith("/"):
@@ -100,17 +100,12 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     if path.is_dir():
         path /= "index.html"
 
-    try:
-        path = path.resolve(strict=True)
-    except FileNotFoundError:
-        return HTTPResponse.error(HTTPStatus.NOT_FOUND)
-
-    root_parts = document_root.parts
-    path_parts = path.parts
-
-    # To disallow relative pathes
-    if root_parts != path_parts[: len(root_parts)]:
+    # Prevent access to parents of the root directory
+    if document_root not in path.parents:
         return HTTPResponse.error(HTTPStatus.FORBIDDEN)
+
+    if not path.is_file():
+        return HTTPResponse.error(HTTPStatus.NOT_FOUND)
 
     if path.suffix not in ALLOWED_CONTENT_TYPES:
         return HTTPResponse.error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
@@ -188,9 +183,7 @@ def handle_client_connection(
 
 
 def wait_connection(
-    listening_socket: socket.socket,
-    thread_id: int,
-    document_root: Path,
+    listening_socket: socket.socket, thread_id: int, document_root: Path
 ) -> None:
     """Forever serve incoming connections on a listening socket.
     """

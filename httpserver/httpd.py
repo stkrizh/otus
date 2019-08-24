@@ -39,31 +39,37 @@ class HTTPException(Exception):
     pass
 
 
-def parse_request(conn: socket.socket) -> HTTPRequest:
-    """Read data from client socket and parse the request.
+def receive(conn: socket.socket) -> bytearray:
+    """Read raw bytes from a client socket.
     """
     conn.settimeout(REQUEST_SOCKET_TIMEOUT)
 
     try:
-        recieved = bytearray()
+        received = bytearray()
 
         while True:
-            if len(recieved) > REQUEST_MAX_SIZE:
+            if len(received) > REQUEST_MAX_SIZE:
                 break
 
-            if b"\r\n\r\n" in recieved:
+            if b"\r\n\r\n" in received:
                 break
 
             chunk = conn.recv(REQUEST_CHUNK_SIZE)
             if not chunk:
                 break
 
-            recieved += chunk
+            received += chunk
 
     except socket.timeout:
         raise HTTPException(HTTPStatus.REQUEST_TIMEOUT)
 
-    raw_request_line, *_ = recieved.partition(b"\r\n")
+    return received
+
+
+def parse_request(received: bytearray) -> HTTPRequest:
+    """Parse request from raw bytes received from a client.
+    """
+    raw_request_line, *_ = received.partition(b"\r\n")
     request_line = str(raw_request_line, "iso-8859-1")
 
     try:
@@ -85,7 +91,7 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     method = request.method
     target = request.clean_target()
 
-    path: Path = document_root / target
+    path = Path(document_root, target).resolve()
 
     # Probably it's a pointless part due to pathlib removes trailing slashes
     if path.is_file() and target.endswith("/"):
@@ -94,17 +100,12 @@ def handle_request(request: HTTPRequest, document_root: Path) -> HTTPResponse:
     if path.is_dir():
         path /= "index.html"
 
-    try:
-        path = path.resolve(strict=True)
-    except FileNotFoundError:
-        return HTTPResponse.error(HTTPStatus.NOT_FOUND)
-
-    root_parts = document_root.parts
-    path_parts = path.parts
-
-    # To disallow relative pathes
-    if root_parts != path_parts[: len(root_parts)]:
+    # Prevent access to parents of the root directory
+    if document_root not in path.parents:
         return HTTPResponse.error(HTTPStatus.FORBIDDEN)
+
+    if not path.is_file():
+        return HTTPResponse.error(HTTPStatus.NOT_FOUND)
 
     if path.suffix not in ALLOWED_CONTENT_TYPES:
         return HTTPResponse.error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
@@ -160,7 +161,8 @@ def handle_client_connection(
 
     with conn:
         try:
-            request = parse_request(conn)
+            raw_bytes = receive(conn)
+            request = parse_request(raw_bytes)
             response = handle_request(request, document_root)
             logging.info(f"{addr}: {request.method} {request.target}")
         except HTTPException as exc:
@@ -180,32 +182,22 @@ def handle_client_connection(
     logging.debug(f"{addr}: connection closed.")
 
 
-def serve_forever(
-    listening_socket: socket.socket,
-    thread_id: int,
-    run_event: threading.Event,
-    document_root: Path,
+def wait_connection(
+    listening_socket: socket.socket, thread_id: int, document_root: Path
 ) -> None:
     """Forever serve incoming connections on a listening socket.
     """
     logging.debug(f"Worker-{thread_id} has been started.")
 
-    listening_socket.settimeout(1)
-
     while True:
-        try:
-            conn, addr = listening_socket.accept()
-            handle_client_connection(conn, addr, document_root)
-        except socket.timeout:
-            if run_event.is_set():
-                continue
-            break
+        conn, addr = listening_socket.accept()
+        handle_client_connection(conn, addr, document_root)
 
     logging.debug(f"Worker-{thread_id} has been stopped.")
     return None
 
 
-def start_workers(
+def serve_forever(
     address: str, port: int, document_root: Path, n_workers: int
 ) -> None:
     """Open a listener socket and start workers in separate threads.
@@ -224,15 +216,11 @@ def start_workers(
 
         sock.listen(BACKLOG)
 
-        run_event = threading.Event()
-        run_event.set()
-
-        pool = []
         for i in range(1, n_workers + 1):
             thread = threading.Thread(
-                target=serve_forever, args=(sock, i, run_event, document_root)
+                target=wait_connection, args=(sock, i, document_root)
             )
-            pool.append(thread)
+            thread.daemon = True
             thread.start()
 
         logging.info(
@@ -245,6 +233,4 @@ def start_workers(
 
         except KeyboardInterrupt:
             logging.info("Server is stopping.")
-            run_event.clear()
-            for worker in pool:
-                worker.join()
+            return None

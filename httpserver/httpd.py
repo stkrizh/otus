@@ -29,7 +29,7 @@ REQUEST_MAX_SIZE = 8 * 1024
 
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="[%(asctime)s] %(levelname).1s %(message)s",
     datefmt="%Y.%m.%d %H:%M:%S",
 )
@@ -183,23 +183,15 @@ def handle_client_connection(
 def serve_forever(
     listening_socket: socket.socket,
     thread_id: int,
-    run_event: threading.Event,
     document_root: Path,
 ) -> None:
     """Forever serve incoming connections on a listening socket.
     """
     logging.debug(f"Worker-{thread_id} has been started.")
 
-    listening_socket.settimeout(1)
-
     while True:
-        try:
-            conn, addr = listening_socket.accept()
-            handle_client_connection(conn, addr, document_root)
-        except socket.timeout:
-            if run_event.is_set():
-                continue
-            break
+        conn, addr = listening_socket.accept()
+        handle_client_connection(conn, addr, document_root)
 
     logging.debug(f"Worker-{thread_id} has been stopped.")
     return None
@@ -224,15 +216,11 @@ def start_workers(
 
         sock.listen(BACKLOG)
 
-        run_event = threading.Event()
-        run_event.set()
-
-        pool = []
         for i in range(1, n_workers + 1):
             thread = threading.Thread(
-                target=serve_forever, args=(sock, i, run_event, document_root)
+                target=serve_forever, args=(sock, i, document_root)
             )
-            pool.append(thread)
+            thread.daemon = True
             thread.start()
 
         logging.info(
@@ -245,6 +233,4 @@ def start_workers(
 
         except KeyboardInterrupt:
             logging.info("Server is stopping.")
-            run_event.clear()
-            for worker in pool:
-                worker.join()
+            return None

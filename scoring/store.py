@@ -18,7 +18,7 @@ def retry(raise_on_failure=True):
             for attempt in range(1, settings.RETRY_N_TIMES + 1):
                 try:
                     return func(*args, **kwargs)
-                except redis.ConnectionError:
+                except (redis.ConnectionError, redis.TimeoutError):
                     msg = "Can't connect to Redis-server. Attempt {} of {}."
                     logging.debug(msg.format(attempt, settings.RETRY_N_TIMES))
                     time.sleep(settings.RETRY_DELAY)

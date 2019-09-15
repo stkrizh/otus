@@ -5,6 +5,7 @@ import multiprocessing as mp
 import os
 import socket
 import sys
+import time
 import unittest
 
 from contextlib import closing
@@ -15,6 +16,7 @@ import requests
 from scoring import settings
 from scoring import api
 from scoring.scoring import build_score_key
+from scoring.store import Storage, StorageError
 from scoring.tests.helpers import cases
 
 
@@ -25,7 +27,94 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-class TestSuite(unittest.TestCase):
+class TestStorage(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.redis = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            password=settings.REDIS_PASSWORD,
+            db=settings.REDIS_DB,
+            socket_timeout=settings.REDIS_CONNECTION_TIMEOUT,
+        )
+
+    def test_cache_set(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        value = hashlib.md5(os.urandom(10)).hexdigest()
+
+        is_set = storage.cache_set(key, value, 10)
+        self.assertTrue(is_set)
+        self.assertEqual(value, self.redis.get(key))
+
+    def test_cache_set_expire(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        value = hashlib.md5(os.urandom(10)).hexdigest()
+
+        is_set = storage.cache_set(key, value, 1)
+        self.assertTrue(is_set)
+
+        time.sleep(2)
+        self.assertIs(None, self.redis.get(key))
+
+    def test_cache_set_storage_not_available(self):
+        storage = Storage(host="128.128.128.128")
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        value = hashlib.md5(os.urandom(10)).hexdigest()
+
+        is_set = storage.cache_set(key, value, 100)
+        self.assertIs(None, is_set)
+
+    def test_cache_get(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        value = hashlib.md5(os.urandom(10)).hexdigest()
+        self.redis.set(key, value)
+
+        self.assertEqual(value, storage.cache_get(key))
+
+    def test_cache_get_nonexistent_key(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        self.assertIs(None, storage.cache_get(key))
+
+    def test_cache_get_expire(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        value = hashlib.md5(os.urandom(10)).hexdigest()
+        self.redis.set(key, value, ex=1)
+
+        time.sleep(2)
+        self.assertIs(None, storage.cache_get(key))
+
+    def test_cache_get_storage_not_available(self):
+        storage = Storage(host="128.128.128.128")
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        self.assertIs(None, storage.cache_get(key))
+
+    def test_get(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        values = map(str, range(10))
+        self.redis.sadd(key, *values)
+
+        self.assertEqual(values, sorted(storage.get(key)))
+
+    def test_get_nonexistent_key(self):
+        storage = Storage()
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+        self.assertEqual([], storage.get(key))
+
+    def test_get_storage_not_available(self):
+        storage = Storage(host="128.128.128.128")
+        key = hashlib.md5(os.urandom(10)).hexdigest()
+
+        with self.assertRaises(StorageError):
+            storage.get(key)
+
+
+class TestServerStorageInteraction(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logger = logging.getLogger()

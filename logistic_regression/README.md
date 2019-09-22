@@ -27,5 +27,5 @@ pip install -r logistic_regression/requirements.txt
 
 ## **Playground**
 ```
-jupyter notebook logistic_regression/playground.ipnb
+jupyter notebook logistic_regression/playground.ipynb
 ```

@@ -1,7 +1,7 @@
 # Logistic regression
 Logistic Regression with Stochastic Gradient Descent.
 
-The dataset (logistic_regression/data/train.csv) consists of 
+The dataset (data/train.csv) consists of 
 reviews of fine foods from Amazon. The column or features in the dataset :
 1. ID
 2. Reviews_Summary — brief text summary of the review
@@ -16,6 +16,7 @@ Objective : Given a review, determine whether the review is positive (1) or nega
   - pandas
   - scikit-learn
   - matplotlib
+  - jupyter
 
 ## **Installation**
 ```

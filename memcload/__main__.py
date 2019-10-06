@@ -71,6 +71,20 @@ def process_line(
     return ProcessingStatus.OK
 
 
+def check_memcached(options):
+    """ Check if memcached is running.
+    """
+    addrs = {options.idfa, options.gaid, options.adid, options.dvid}
+    for addr in addrs:
+        client = memcache.Client([addr])
+        key = "test:check_memcached"
+        client.set(key, 42)
+        if client.get(key) != 42:
+            logging.error(f"Memcached on {addr} is not running.")
+            sys.exit(1)
+        client.delete(key)
+
+
 def main(options):
     """ Entry point
     """
@@ -130,6 +144,9 @@ if __name__ == "__main__":
     op.add_option("--dvid", action="store", default="127.0.0.1:33016")
 
     (opts, args) = op.parse_args()
+
+    if not opts.dry:
+        check_memcached(opts)
 
     logging.basicConfig(
         filename=opts.log,

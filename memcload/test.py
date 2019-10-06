@@ -1,28 +1,8 @@
-import functools
+import math
 import unittest
 
 from . import appsinstalled_pb2
 from .types import AppsInstalled, DeviceType
-
-
-def cases(cases):
-    def decorator(f):
-        @functools.wraps(f)
-        def wrapper(*args):
-            for c in cases:
-                new_args = args + (c if isinstance(c, tuple) else (c,))
-                try:
-                    f(*new_args)
-                except Exception as exc:
-                    params_msg = ", ".join(map(str, new_args[1:]))
-                    if exc.args and exc.args[0]:
-                        msg = exc.args[0]
-                        exc.args = (str(msg) + " : " + params_msg,)
-                    else:
-                        exc.args = (params_msg,)
-                    raise
-        return wrapper
-    return decorator
 
 
 class TestMemcLoad(unittest.TestCase):
@@ -59,8 +39,8 @@ class TestMemcLoad(unittest.TestCase):
 
         ap = AppsInstalled.from_raw("adid\t1\ta\tb\t      1,  2,  aaa, 42   ")
         self.assertIs(ap.dev_type, DeviceType.ADID)
-        self.assertEqual(ap.lat, "a")
-        self.assertEqual(ap.lon, "b")
+        self.assertTrue(math.isnan(ap.lat))
+        self.assertTrue(math.isnan(ap.lon))
         self.assertEqual(ap.apps, [1, 2, 42])
 
     def test_apps_installed_parse_invalid(self):
@@ -72,7 +52,6 @@ class TestMemcLoad(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             AppsInstalled.from_raw("gaid\t\t0\t0\t1,2,3")
-
 
 
 if __name__ == "__main__":

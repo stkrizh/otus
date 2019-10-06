@@ -30,6 +30,12 @@ class DeviceType(Enum):
     DVID = "dvid"
 
 
+class ProcessingStatus(Enum):
+    OK = 1
+    ERROR = -1
+    SKIP = 0
+
+
 class AppsInstalled(NamedTuple):
     dev_type: DeviceType
     dev_id: str
@@ -44,13 +50,13 @@ class AppsInstalled(NamedTuple):
         if len(line_parts) < 5:
             raise ValueError("Invalid format.")
 
-        raw_dev_type, dev_id, lat, lon, raw_apps = line_parts
+        raw_dev_type, dev_id, raw_lat, raw_lon, raw_apps = line_parts
 
         try:
             raw_dev_type = raw_dev_type.strip().lower()
             dev_type = DeviceType(raw_dev_type)
         except ValueError:
-            raise ValueError("Unknown device type: {raw_dev_type}")
+            raise ValueError(f"Unknown device type: {raw_dev_type}")
 
         if not dev_id:
             raise ValueError("Device ID missed.")
@@ -59,12 +65,12 @@ class AppsInstalled(NamedTuple):
             apps = [int(a.strip()) for a in raw_apps.split(",")]
         except ValueError:
             apps = [
-                int(a.strip()) for a in raw_apps.split(",") if a.isidigit()
+                int(a.strip()) for a in raw_apps.split(",") if a.isdigit()
             ]
             logging.info("Not all user apps are digits: `%s`" % line)
 
         try:
-            lat, lon = float(lat), float(lon)
+            lat, lon = float(raw_lat), float(raw_lon)
         except ValueError:
             logging.info("Invalid geo coords: `%s`" % line)
 
@@ -102,25 +108,27 @@ def insert_appsinstalled(
     return True
 
 
-def process_line(line, device_memc, dry: bool) -> int:
+def process_line(
+    raw_line: bytes, device_memc: Dict[DeviceType, str], dry: bool
+) -> ProcessingStatus:
 
-    line = line.strip().decode("utf-8")
+    line = raw_line.decode("utf-8").strip()
     if not line:
-        return 0
+        return ProcessingStatus.SKIP
 
     try:
         appsinstalled = AppsInstalled.from_raw(line)
     except ValueError as e:
         logging.error(f"Cannot parse line: {e}")
-        return -1
+        return ProcessingStatus.ERROR
 
     memc_addr: str = device_memc[appsinstalled.dev_type]
+    ok: bool = insert_appsinstalled(memc_addr, appsinstalled, dry)
 
-    ok = insert_appsinstalled(memc_addr, appsinstalled, dry)
-    if ok:
-        return 1
+    if not ok:
+        return ProcessingStatus.ERROR
 
-    return -1
+    return ProcessingStatus.OK
 
 
 def main(options):
@@ -142,10 +150,12 @@ def main(options):
                 job = partial(
                     process_line, device_memc=device_memc, dry=options.dry
                 )
-                statuses = Counter(pool.imap(job, fd, chunksize=1000))
+                statuses = Counter(
+                    pool.imap_unordered(job, fd, chunksize=500)
+                )
 
-        ok = statuses[1]
-        errors = statuses[-1]
+        ok = statuses[ProcessingStatus.OK]
+        errors = statuses[ProcessingStatus.ERROR]
         processed = ok + errors
 
         if not processed:
@@ -162,6 +172,7 @@ def main(options):
                 "High error rate (%s > %s). Failed load"
                 % (err_rate, NORMAL_ERR_RATE)
             )
+
         dot_rename(fn)
 
 

@@ -71,6 +71,40 @@ def process_line(
     return ProcessingStatus.OK
 
 
+def process_file(
+    fn: str, device_memc: Dict[DeviceType, str], dry: bool
+) -> None:
+    worker = mp.current_process()
+    logging.info(f"[{worker.name}] Processing {fn}")
+
+    with gzip.open(fn) as fd:
+        job = partial(process_line, device_memc=device_memc, dry=dry)
+        statuses = Counter(map(job, fd))
+
+    ok = statuses[ProcessingStatus.OK]
+    errors = statuses[ProcessingStatus.ERROR]
+    processed = ok + errors
+
+    if not processed:
+        dot_rename(fn)
+        return None
+
+    err_rate = float(errors) / processed
+    if err_rate < NORMAL_ERR_RATE:
+        logging.info(
+            f"[{worker.name}] Acceptable error rate ({err_rate})."
+            f" Successfull load"
+        )
+    else:
+        logging.error(
+            f"[{worker.name}] High error rate ({err_rate} > {NORMAL_ERR_RATE})."
+            f" Failed load"
+        )
+
+    dot_rename(fn)
+    return None
+
+
 def check_memcached(options):
     """ Check if memcached is running.
     """
@@ -95,39 +129,9 @@ def main(options):
         DeviceType.DVID: options.dvid,
     }
 
-    for fn in glob.iglob(options.pattern):
-
-        logging.info("Processing %s" % fn)
-
-        with gzip.open(fn) as fd:
-            with mp.Pool() as pool:
-                job = partial(
-                    process_line, device_memc=device_memc, dry=options.dry
-                )
-                statuses = Counter(
-                    pool.imap_unordered(job, fd, chunksize=500)
-                )
-
-        ok = statuses[ProcessingStatus.OK]
-        errors = statuses[ProcessingStatus.ERROR]
-        processed = ok + errors
-
-        if not processed:
-            dot_rename(fn)
-            continue
-
-        err_rate = float(errors) / processed
-        if err_rate < NORMAL_ERR_RATE:
-            logging.info(
-                "Acceptable error rate (%s). Successfull load" % err_rate
-            )
-        else:
-            logging.error(
-                "High error rate (%s > %s). Failed load"
-                % (err_rate, NORMAL_ERR_RATE)
-            )
-
-        dot_rename(fn)
+    job = partial(process_file, device_memc=device_memc, dry=options.dry)
+    with mp.Pool() as pool:
+        pool.map(job, glob.iglob(options.pattern))
 
 
 if __name__ == "__main__":

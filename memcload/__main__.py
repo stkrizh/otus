@@ -4,19 +4,23 @@ import logging
 import multiprocessing as mp
 import os
 import sys
+import time
 
 from collections import Counter
 from functools import partial
 from optparse import OptionParser
-from typing import Dict
+from typing import List
 
 import memcache
 
 from . import appsinstalled_pb2
-from .types import AppsInstalled, DeviceType, ProcessingStatus
+from .types import AppsInstalled, ProcessingStatus
 
 
 NORMAL_ERR_RATE = 0.01
+MEMCACHE_RETRY_NUMBER = 3
+MEMCACHE_RETRY_TIMEOUT_SECONDS = 1
+MEMCACHE_SOCKET_TIMEOUT_SECONDS = 3
 
 
 def dot_rename(path):
@@ -26,30 +30,41 @@ def dot_rename(path):
 
 
 def insert_appsinstalled(
-    memc_addr: str, appsinstalled: AppsInstalled, dry_run: bool = False
+    memcache_client: memcache.Client,
+    appsinstalled: AppsInstalled,
+    dry_run: bool = False,
 ) -> bool:
     ua = appsinstalled_pb2.UserApps()
     ua.lat = appsinstalled.lat
     ua.lon = appsinstalled.lon
-    key = "%s:%s" % (appsinstalled.dev_type.value, appsinstalled.dev_id)
+    key = "%s:%s" % (appsinstalled.dev_type, appsinstalled.dev_id)
     ua.apps.extend(appsinstalled.apps)
     packed = ua.SerializeToString()
-    try:
-        if dry_run:
-            logging.debug(
-                "%s - %s -> %s" % (memc_addr, key, str(ua).replace("\n", " "))
+
+    if dry_run:
+        logging.debug("%s -> %s" % (key, str(ua).replace("\n", " ")))
+        return True
+
+    for _ in range(MEMCACHE_RETRY_NUMBER):
+        try:
+            # Use a tuple as key to write to specific Memcached server
+            # https://github.com/linsomniac/python-memcached/blob/bad41222379102e3f18f6f2f7be3ee608de6fbff/memcache.py#L698
+            success: bool = memcache_client.set(
+                (appsinstalled.dev_type.value, key), packed
             )
-        else:
-            memc = memcache.Client([memc_addr])
-            memc.set(key, packed)
-    except Exception as e:
-        logging.exception("Cannot write to memc %s: %s" % (memc_addr, e))
-        return False
-    return True
+        except Exception as e:
+            logging.exception(f"Cannot write to Memcache: {e}")
+            return False
+        if success:
+            return True
+        time.sleep(MEMCACHE_RETRY_TIMEOUT_SECONDS)
+
+    logging.error("Cannot write to Memcache. Server is down")
+    return False
 
 
 def process_line(
-    raw_line: bytes, device_memc: Dict[DeviceType, str], dry: bool
+    raw_line: bytes, memcache_client: memcache.Client, dry: bool
 ) -> ProcessingStatus:
 
     line = raw_line.decode("utf-8").strip()
@@ -62,72 +77,65 @@ def process_line(
         logging.error(f"Cannot parse line: {e}")
         return ProcessingStatus.ERROR
 
-    memc_addr: str = device_memc[appsinstalled.dev_type]
-    ok: bool = insert_appsinstalled(memc_addr, appsinstalled, dry)
-
+    ok: bool = insert_appsinstalled(memcache_client, appsinstalled, dry)
     if not ok:
         return ProcessingStatus.ERROR
 
     return ProcessingStatus.OK
 
 
-def check_memcached(options):
-    """ Check if memcached is running.
-    """
-    addrs = {options.idfa, options.gaid, options.adid, options.dvid}
-    for addr in addrs:
-        client = memcache.Client([addr])
-        key = "test:check_memcached"
-        client.set(key, 42)
-        if client.get(key) != 42:
-            logging.error(f"Memcached on {addr} is not running.")
-            sys.exit(1)
-        client.delete(key)
+def process_file(fn: str, memcache_addresses: List[str], dry: bool) -> None:
+    worker = mp.current_process()
+    logging.info(f"[{worker.name}] Processing {fn}")
+
+    memcache_client = memcache.Client(
+        memcache_addresses,
+        socket_timeout=3,
+        dead_retry=MEMCACHE_RETRY_TIMEOUT_SECONDS,
+    )
+    with gzip.open(fn) as fd:
+        job = partial(process_line, memcache_client=memcache_client, dry=dry)
+        statuses = Counter(map(job, fd))
+
+    ok = statuses[ProcessingStatus.OK]
+    errors = statuses[ProcessingStatus.ERROR]
+    processed = ok + errors
+
+    if not processed:
+        dot_rename(fn)
+        return None
+
+    err_rate = float(errors) / processed
+    if err_rate < NORMAL_ERR_RATE:
+        logging.info(
+            f"[{worker.name}] Acceptable error rate: {err_rate}."
+            f" Successfull load"
+        )
+    else:
+        logging.error(
+            f"[{worker.name}] High error rate: {err_rate} > {NORMAL_ERR_RATE}."
+            f" Failed load"
+        )
+
+    dot_rename(fn)
+    return None
 
 
 def main(options):
     """ Entry point
     """
-    device_memc: Dict[DeviceType, str] = {
-        DeviceType.IDFA: options.idfa,
-        DeviceType.GAID: options.gaid,
-        DeviceType.ADID: options.adid,
-        DeviceType.DVID: options.dvid,
-    }
+    memcache_addresses: List[str] = [
+        options.idfa,
+        options.gaid,
+        options.adid,
+        options.dvid,
+    ]
 
-    for fn in glob.iglob(options.pattern):
-
-        logging.info("Processing %s" % fn)
-
-        with gzip.open(fn) as fd:
-            with mp.Pool() as pool:
-                job = partial(
-                    process_line, device_memc=device_memc, dry=options.dry
-                )
-                statuses = Counter(
-                    pool.imap_unordered(job, fd, chunksize=500)
-                )
-
-        ok = statuses[ProcessingStatus.OK]
-        errors = statuses[ProcessingStatus.ERROR]
-        processed = ok + errors
-
-        if not processed:
-            dot_rename(fn)
-            continue
-
-        err_rate = float(errors) / processed
-        if err_rate < NORMAL_ERR_RATE:
-            logging.info(
-                "Acceptable error rate (%s). Successfull load" % err_rate
-            )
-        else:
-            logging.error(
-                "High error rate (%s > %s). Failed load"
-                % (err_rate, NORMAL_ERR_RATE)
-            )
-
-        dot_rename(fn)
+    job = partial(
+        process_file, memcache_addresses=memcache_addresses, dry=options.dry
+    )
+    with mp.Pool() as pool:
+        pool.map(job, glob.iglob(options.pattern))
 
 
 if __name__ == "__main__":
@@ -144,9 +152,6 @@ if __name__ == "__main__":
     op.add_option("--dvid", action="store", default="127.0.0.1:33016")
 
     (opts, args) = op.parse_args()
-
-    if not opts.dry:
-        check_memcached(opts)
 
     logging.basicConfig(
         filename=opts.log,

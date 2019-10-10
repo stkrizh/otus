@@ -5,10 +5,13 @@ from typing import List, NamedTuple
 
 
 class DeviceType(Enum):
-    IDFA = "idfa"
-    GAID = "gaid"
-    ADID = "adid"
-    DVID = "dvid"
+    IDFA = 0
+    GAID = 1
+    ADID = 2
+    DVID = 3
+
+    def __str__(self):
+        return self.name.lower()
 
 
 class ProcessingStatus(Enum):
@@ -34,9 +37,9 @@ class AppsInstalled(NamedTuple):
         raw_dev_type, dev_id, raw_lat, raw_lon, raw_apps = line_parts
 
         try:
-            raw_dev_type = raw_dev_type.strip().lower()
-            dev_type = DeviceType(raw_dev_type)
-        except ValueError:
+            raw_dev_type = raw_dev_type.strip().upper()
+            dev_type = DeviceType[raw_dev_type]
+        except KeyError:
             raise ValueError(f"Unknown device type: {raw_dev_type}")
 
         if not dev_id:

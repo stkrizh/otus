@@ -7,3 +7,4 @@ Python Otus tasks
 4. [Django App / Django REST framework](https://github.com/stkrizh/otus-django-hasker)
 5. [Logistic Regression](https://github.com/stkrizh/otus/tree/master/logistic_regression)
 6. [Memcached Load](https://github.com/stkrizh/otus/tree/master/memcload)
+7. [Open Data Analysis](https://github.com/stkrizh/otus/tree/master/open_data_analysis)

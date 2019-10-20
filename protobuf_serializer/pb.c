@@ -150,6 +150,7 @@ int pack_apps(DeviceApps* msg, PyObject* py_message) {
     PyObject* apps_item;
     int overflow;
     size_t origin_apps_len;
+    size_t i;
     size_t len = 0;
     long item;
 
@@ -168,7 +169,7 @@ int pack_apps(DeviceApps* msg, PyObject* py_message) {
             if (!msg->apps)
                 return STATUS_ERROR_MEMORY;
 
-            for (size_t i = 0; i < origin_apps_len; i++) {
+            for (i = 0; i < origin_apps_len; i++) {
                 apps_item = PyList_GetItem(apps, i);
                 if (!PyLong_Check(apps_item))
                     continue;
@@ -243,7 +244,7 @@ int write_message(gzFile file, PyObject* py_message) {
 
     if (
         (bytes_written_header != sizeof(message_header)) ||
-        (bytes_written_body != packed_size)
+        (bytes_written_body != (int) packed_size)
     )
         return STATUS_ERROR_SERIALIZATION;
 
@@ -646,6 +647,7 @@ static PyObject* py_deviceapps_xread_pb(PyObject* self, PyObject* args) {
 
     iterator = PySeqIter_New(list);
     Py_DECREF(list);
+    gzclose(file);
 
     return iterator;
 }

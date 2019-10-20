@@ -8,3 +8,4 @@ Python Otus tasks
 5. [Logistic Regression](https://github.com/stkrizh/otus/tree/master/logistic_regression)
 6. [Memcached Load](https://github.com/stkrizh/otus/tree/master/memcload)
 7. [Open Data Analysis](https://github.com/stkrizh/otus/tree/master/open_data_analysis)
+8. [Building a Python C Extension Module](https://github.com/stkrizh/otus/tree/master/protobuf_serializer)

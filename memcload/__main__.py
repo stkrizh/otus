@@ -106,13 +106,13 @@ def process_file(fn: str, memcache_addresses: List[str], dry: bool) -> None:
 
     if err_rate < NORMAL_ERR_RATE:
         logging.info(
-            f"[{worker.name}] Acceptable error rate: {err_rate}."
+            f"[{worker.name}] [{fn}] Acceptable error rate: {err_rate}."
             f" Successfull load"
         )
     else:
         logging.error(
-            f"[{worker.name}] High error rate: {err_rate} > {NORMAL_ERR_RATE}."
-            f" Failed load"
+            f"[{worker.name}] [{fn}] High error rate: "
+            f"{err_rate} > {NORMAL_ERR_RATE}. Failed load"
         )
 
     return fn

@@ -9,6 +9,7 @@ import time
 from collections import Counter
 from functools import partial
 from optparse import OptionParser
+from pathlib import Path
 from typing import List
 
 import memcache
@@ -101,11 +102,8 @@ def process_file(fn: str, memcache_addresses: List[str], dry: bool) -> None:
     errors = statuses[ProcessingStatus.ERROR]
     processed = ok + errors
 
-    if not processed:
-        dot_rename(fn)
-        return None
+    err_rate = float(errors) / processed if processed else 1.0
 
-    err_rate = float(errors) / processed
     if err_rate < NORMAL_ERR_RATE:
         logging.info(
             f"[{worker.name}] Acceptable error rate: {err_rate}."
@@ -117,8 +115,7 @@ def process_file(fn: str, memcache_addresses: List[str], dry: bool) -> None:
             f" Failed load"
         )
 
-    dot_rename(fn)
-    return None
+    return fn
 
 
 def main(options):
@@ -134,8 +131,16 @@ def main(options):
     job = partial(
         process_file, memcache_addresses=memcache_addresses, dry=options.dry
     )
+
+    files = sorted(
+        glob.glob(options.pattern), key=lambda file: Path(file).name
+    )
+
     with mp.Pool() as pool:
-        pool.map(job, glob.iglob(options.pattern))
+        for processed_file in pool.imap(job, files):
+            worker = mp.current_process()
+            logging.info(f"[{worker.name}] Renaming {processed_file}")
+            dot_rename(processed_file)
 
 
 if __name__ == "__main__":
@@ -143,6 +148,7 @@ if __name__ == "__main__":
 
     op.add_option("-l", "--log", action="store", default=None)
     op.add_option("--dry", action="store_true", default=False)
+    op.add_option("--loglevel", action="store", default="INFO")
     op.add_option(
         "--pattern", action="store", default="/data/appsinstalled/*.tsv.gz"
     )
@@ -155,7 +161,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(
         filename=opts.log,
-        level=logging.INFO if not opts.dry else logging.DEBUG,
+        level=getattr(logging, opts.loglevel, logging.INFO),
         format="[%(asctime)s] %(levelname).1s %(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
     )

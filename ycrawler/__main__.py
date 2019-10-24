@@ -1,11 +1,52 @@
 import argparse
-import json
+import logging
 
 from pathlib import Path
 
+from . import crawler
+
 
 DEFAULT_OUTPUT_DIR = "./Ynews/"
-DEFAULT_REFRESH_TIME = 60
+DEFAULT_REFRESH_TIME = "60"
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname).1s %(message)s",
+    datefmt="%Y.%m.%d %H:%M:%S",
+)
+
+
+def prepare_output_dir(raw_output_dir: str) -> Path:
+    """ Validate the value of `--output-dir` command line argument.
+    """
+    try:
+        output_dir = Path(raw_output_dir).resolve()
+        output_dir.mkdir(exist_ok=True, parents=True)
+    except RuntimeError:
+        raise argparse.ArgumentTypeError("Invalid path to output directory.")
+    except OSError:
+        raise argparse.ArgumentTypeError("Could not create output directory.")
+
+    return output_dir
+
+
+def prepare_refresh_time(raw_refresh_time: str) -> int:
+    """ Validate the value of `--refresh-time` command line argument.
+    """
+    try:
+        refresh_time = int(raw_refresh_time)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            "Refresh time must be a positive integer."
+        )
+
+    if refresh_time < 0:
+        raise argparse.ArgumentTypeError(
+            "Refresh time must be a positive integer."
+        )
+
+    return refresh_time
 
 
 parser = argparse.ArgumentParser(
@@ -22,18 +63,20 @@ parser.add_argument(
         f"[Default: {DEFAULT_OUTPUT_DIR}]"
     ),
     default=DEFAULT_OUTPUT_DIR,
+    type=prepare_output_dir,
 )
 parser.add_argument(
     "--refresh-time",
-    type=int,
     help=(
         "Time in seconds to fetch new articles periodically. "
         f"[Default: {DEFAULT_REFRESH_TIME}]"
     ),
     default=DEFAULT_REFRESH_TIME,
+    type=prepare_refresh_time,
 )
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    print(json.dumps(vars(args), indent=4, sort_keys=True))
+    output_dir: Path = args.output_dir
+    refresh_time: int = args.refresh_time

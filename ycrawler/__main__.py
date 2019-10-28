@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import logging
 
 from pathlib import Path
@@ -80,3 +81,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     output_dir: Path = args.output_dir
     refresh_time: int = args.refresh_time
+
+    asyncio.run(crawler.main())

@@ -29,6 +29,8 @@ RETRY_MAX_ATTEMPTS = 5
 
 @dataclass
 class YStory:
+    """ Class represents one news from the main page.
+    """
     id: int
     url: str
     slug: str
@@ -36,23 +38,23 @@ class YStory:
     comments_parsed: bool = False
 
 
-async def fetch_html(session: aiohttp.ClientSession, url: str) -> str:
-    """ Doc
+async def fetch(session: aiohttp.ClientSession, url: str) -> str:
+    """ Wrapper to fetch a page's data.
     """
     async with session.get(url) as response:
         logging.debug(f"Got response {response.status} for URL: {url}")
         response.raise_for_status()
-        html = await response.text()
-        return response.status, html
+        data = await response.text()
+        return response.status, data
 
 
 async def parse_stories(session: aiohttp.ClientSession) -> List[YStory]:
-    """ Doc
+    """ Find URLs and additional info on the main page `BASE_URL`.
     """
     stories: List[YStory] = []
 
     try:
-        status, html = await fetch_html(session, BASE_URL)
+        status, html = await fetch(session, BASE_URL)
     except Exception:
         logging.exception(f"An exception occurred while parsing {BASE_URL}")
         return stories
@@ -73,14 +75,15 @@ async def parse_stories(session: aiohttp.ClientSession) -> List[YStory]:
 async def parse_urls_in_comments(
     session: aiohttp.ClientSession, story: YStory
 ) -> None:
-    """ Doc
+    """ Find URLs in comments for specified `story`. Add found URLs to
+        `comments_urls` list of the `story`.
     """
     max_attempts = RETRY_MAX_ATTEMPTS
     url = f"{BASE_URL}item?id={story.id}"
 
     for attempt in range(1, max_attempts + 1):
         try:
-            status, html = await fetch_html(session, url)
+            status, html = await fetch(session, url)
         except Exception:
             logging.debug(f"An exception occurred while parsing {url}")
             await asyncio.sleep(0.5 + 2 * random.random())
@@ -97,6 +100,8 @@ async def parse_urls_in_comments(
 
 
 async def main():
+    """ Entry point.
+    """
     connector = aiohttp.TCPConnector(limit_per_host=LIMIT_PER_HOST_CONNECTIONS)
     async with aiohttp.ClientSession(connector=connector) as session:
         stories: List[YStory] = await parse_stories(session)

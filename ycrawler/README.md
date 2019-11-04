@@ -7,6 +7,7 @@ Crawler finds and downloads all articles from the [Hacker News](https://news.yco
 ### Requirements
 * Python (3.7+)
 * aiohttp
+* aiofiles
 
 ### Installation
 ```

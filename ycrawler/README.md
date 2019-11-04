@@ -19,8 +19,8 @@ pip install -r ycrawler/requirements.txt
 ```bash
 python3.7 -m ycrawler --help
 
-usage: __main__.py [-h] [--output-dir OUTPUT_DIR]
-                   [--refresh-time REFRESH_TIME] [--debug]
+usage: python -m ycrawler [-h] [--output-dir OUTPUT_DIR]
+                          [--refresh-time REFRESH_TIME] [--debug]
 
 Web crawler for 'news.ycombinator.com'. The program periodically looks for new
 articles from the site and stores articles to specific folder.

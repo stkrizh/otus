@@ -46,9 +46,10 @@ def prepare_refresh_time(raw_refresh_time: str) -> int:
 parser = argparse.ArgumentParser(
     description=(
         "Web crawler for 'news.ycombinator.com'. The program periodically "
-        "looks for new articles from the site and stores articles to "
-        "specific folder."
-    )
+        "checks for new articles from the site and stores articles to "
+        "specified folder."
+    ),
+    prog="python -m ycrawler"
 )
 parser.add_argument(
     "--output-dir",

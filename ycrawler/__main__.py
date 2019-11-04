@@ -7,15 +7,8 @@ from pathlib import Path
 from . import crawler
 
 
-DEFAULT_OUTPUT_DIR = "./Ynews/"
+DEFAULT_OUTPUT_DIR = "./hacker-news/"
 DEFAULT_REFRESH_TIME = "60"
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname).1s %(message)s",
-    datefmt="%Y.%m.%d %H:%M:%S",
-)
 
 
 def prepare_output_dir(raw_output_dir: str) -> Path:
@@ -75,6 +68,9 @@ parser.add_argument(
     default=DEFAULT_REFRESH_TIME,
     type=prepare_refresh_time,
 )
+parser.add_argument(
+    "--debug", action="store_true", help="Show debug messages.", default=False
+)
 
 
 if __name__ == "__main__":
@@ -82,4 +78,13 @@ if __name__ == "__main__":
     output_dir: Path = args.output_dir
     refresh_time: int = args.refresh_time
 
-    asyncio.run(crawler.main())
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format="[%(asctime)s] %(levelname).1s %(message)s",
+        datefmt="%Y.%m.%d %H:%M:%S",
+    )
+
+    try:
+        asyncio.run(crawler.main(output_dir, refresh_time))
+    except KeyboardInterrupt:
+        logging.info("Crawler has stopped")

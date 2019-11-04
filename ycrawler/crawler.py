@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import shutil
 
 from functools import wraps
 from html import unescape
@@ -13,25 +14,25 @@ import aiohttp
 from .helpers import ignore_aiohttp_ssl_eror
 
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname).1s: %(message)s",
-    level=logging.INFO,
-    datefmt="%H:%M:%S",
-)
-
-
 BASE_URL = "https://news.ycombinator.com/"
 DOWNLOAD_CHUNK_SIZE_BYTES = 1024
 DOWNLOAD_MAX_SIZE_MB = 3
+HEADERS = {
+    "User-Agent": (
+        "Google Chrome Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/58.0.3029.110 Safari/537.36"
+    )
+}
 LIMIT_PER_HOST_CONNECTIONS = 3
 RE_COMMENT_LINK = re.compile(r'<span class="commtext.+?<a href="(.+?)"')
 RE_STORY_LINK = re.compile(
     r"<tr class=\'athing\' id=\'(\d+)\'>\n.+?"
     r'<a href="(.+?)" class="storylink".*?>(.+?)</a>'
 )
+RETRY_DELAY_SEC = 2
 RETRY_MAX_ATTEMPTS = 3
-RETRY_DELAY_SEC = 1
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 10
 
 
 class DownloadMaxSizeExceeded(Exception):
@@ -39,12 +40,12 @@ class DownloadMaxSizeExceeded(Exception):
 
 
 class Story:
-    """ Class represents one news from the main hacker-news page.
+    """ Class represents one link from the main hacker-news page.
     """
 
     def __init__(self, id: int, url: str, title: str):
         self.id = id
-        self.url = url
+        self.url = f"{BASE_URL}{url}" if url.startswith("item?") else url
         self.title = title
         self.urls_from_comments: List[str] = []
         self.comments_parsed_successfully: bool = False
@@ -67,24 +68,43 @@ class Story:
         """
         try:
             status, html = await fetch(session, self.comments_url)
-        except Exception:
+        except Exception as exc:
+            logging.debug(
+                f"Could not download comments for {self}. "
+                f"{type(exc)}({exc}) was raised"
+            )
             return None
 
         raw_urls: List[str] = re.findall(RE_COMMENT_LINK, html)
-        logging.info(f"Found {len(raw_urls)} URLs in comments for {self}")
+        logging.debug(f"Found {len(raw_urls)} URLs in comments for {self}")
 
         self.urls_from_comments.extend(map(unescape, raw_urls))
         self.comments_parsed_successfully = True
 
-    async def download(self, session: aiohttp.ClientSession, output_dir: Path):
+        t = [
+            item
+            for item in self.urls_from_comments
+            if item.startswith("item?")
+        ]
+        if t:
+            print(self.id)
+            print(t)
+
+    async def download(
+        self, session: aiohttp.ClientSession, output_dir: Path
+    ) -> None:
         """ Download story and URLs from its comments to `output_dir`
         """
-        await self.parse_urls_from_comments(session)
-
         story_dir: Path = output_dir / self.slug
-        story_dir.mkdir()
         story_comments_dir: Path = story_dir / "comments"
-        story_comments_dir.mkdir()
+
+        if story_dir.is_dir():
+            logging.info(f"{self} already downloaded")
+            return
+
+        story_comments_dir.mkdir(parents=True)
+
+        await self.parse_urls_from_comments(session)
 
         if self.comments_parsed_successfully:
             tasks = {
@@ -131,6 +151,7 @@ class Story:
             )
 
         else:
+            shutil.rmtree(story_dir, ignore_errors=True)
             logging.warning(
                 f"{self} download has failed. "
                 f"Could not fetch comments page."
@@ -255,18 +276,25 @@ async def parse_stories(session: aiohttp.ClientSession) -> List[Story]:
     return stories
 
 
-async def main():
+async def main(output_dir: Path, refresh_time: int) -> None:
     """ Async entry point coroutine.
     """
     ignore_aiohttp_ssl_eror(asyncio.get_running_loop())
 
-    output_dir = Path("/home/sk/Dev/async/")
-    output_dir.mkdir(exist_ok=True, parents=True)
+    while True:
+        n_downloaded: int = len(list(output_dir.iterdir()))
+        logging.info("Starting download")
+        logging.info(f"Total number of stories downloaded: {n_downloaded}")
 
-    connector = aiohttp.TCPConnector(
-        limit_per_host=LIMIT_PER_HOST_CONNECTIONS, force_close=True
-    )
-    async with aiohttp.ClientSession(connector=connector) as session:
-        stories: List[Story] = await parse_stories(session)
-        tasks = (story.download(session, output_dir) for story in stories)
-        await asyncio.gather(*tasks)
+        connector = aiohttp.TCPConnector(
+            limit_per_host=LIMIT_PER_HOST_CONNECTIONS, force_close=True
+        )
+        async with aiohttp.ClientSession(
+            connector=connector, headers=HEADERS
+        ) as session:
+            stories: List[Story] = await parse_stories(session)
+            tasks = (story.download(session, output_dir) for story in stories)
+            await asyncio.gather(*tasks)
+
+        logging.info(f"Waiting for refresh time in {refresh_time} seconds")
+        await asyncio.sleep(refresh_time)

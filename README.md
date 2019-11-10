@@ -10,3 +10,4 @@ Python Otus tasks
 7. [Open Data Analysis](https://github.com/stkrizh/otus/tree/master/open_data_analysis)
 8. [Building a Python C Extension Module](https://github.com/stkrizh/otus/tree/master/protobuf_serializer)
 9. [Asyncio Web Crawler](https://github.com/stkrizh/otus/tree/master/ycrawler)
+10. [Go (golang) implementation of Memcache Load](https://github.com/stkrizh/otus-go-memcload)

@@ -8,7 +8,7 @@ http://www.cs.toronto.edu/~delve/data/adult/desc.html
 * Numpy
 * Pandas
 * Scikit-learn
-* Bokeh
+* Matplotlib / Seabron
 
 ## **Installation**
 ```

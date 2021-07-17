@@ -16,17 +16,16 @@ kubectl get ingress
 ```
 
 Send requests to the cluster (*111.222.33.4 it's IP address from output of previous command*):
-```
+```bash
 curl -H "Host: arch.homework" -X GET 111.222.33.4/health
-```
-*Output:*
-```
-{"status": "OK"}
 
+# Output:
+{"status": "OK"}
+```
+---
 ```
 curl -H "Host: arch.homework" -X GET 111.222.33.4/otusapp/stanislav
-```
-*Output:*
-```
+
+# Output:
 {"name": "stanislav"}
 ```

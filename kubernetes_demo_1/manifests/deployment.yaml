@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: k8s-demo-app
+  template:
+    metadata:
+      labels:
+        app: k8s-demo-app
+    spec:
+      containers:
+      - name: k8s-demo-app
+        image: stkrizh/otus-arch:k8s-demo-app
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080

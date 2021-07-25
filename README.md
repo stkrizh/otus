@@ -1,5 +1,5 @@
 # otus
-Python Otus tasks
+## Python Otus tasks
 
 1. [Log Analyzer](https://github.com/stkrizh/otus-log-analyzer)
 2. [Scoring API](https://github.com/stkrizh/otus/tree/master/scoring)
@@ -11,3 +11,7 @@ Python Otus tasks
 8. [Building a Python C Extension Module](https://github.com/stkrizh/otus/tree/master/protobuf_serializer)
 9. [Asyncio Web Crawler](https://github.com/stkrizh/otus/tree/master/ycrawler)
 10. [Go (golang) implementation of Memcache Load](https://github.com/stkrizh/otus-go-memcload)
+
+## Microservice architecture
+
+1. [Kubernetes demo application](https://github.com/stkrizh/otus/tree/master/kubernetes_demo_1)

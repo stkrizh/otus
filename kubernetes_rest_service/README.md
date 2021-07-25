@@ -27,6 +27,7 @@ helm dep update
 ```
 helm upgrade --install k8s-rest-service . -f values.yaml
 ```
+_Wait until all pods are ready._
 
 #### Send HTTP requests to the service:
 _You may need to edit /etc/hosts file for using arch.homework host name._

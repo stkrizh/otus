@@ -44,4 +44,4 @@ List existing users:
 curl -X GET http://arch.homework/api/v1/users | jq
 ```
 
-See also Postman collection (v2.1)
+See also [Postman collection (v2.1)](https://github.com/stkrizh/otus/blob/master/kubernetes_rest_service/k8s-rest-service.postman_collection.json)

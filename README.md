@@ -15,3 +15,4 @@
 ## Microservice architecture
 
 1. [Kubernetes demo application](https://github.com/stkrizh/otus/tree/master/kubernetes_demo_1)
+2. [Kubernetes demo RESTful service](https://github.com/stkrizh/otus/tree/master/kubernetes_rest_service)

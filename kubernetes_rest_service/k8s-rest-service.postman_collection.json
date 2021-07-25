@@ -1,0 +1,176 @@
+{
+	"info": {
+		"_postman_id": "93022f76-da45-48c9-9c2f-86db0362a7ed",
+		"name": "k8s-rest-service",
+		"description": "OTUS k8s demo RESTful service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create new user (POST)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"one\",\n    \"email\": \"some@email.example\",\n    \"first_name\": \"Foo\",\n    \"last_name\": \"Bar\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://arch.homework/api/v1/users",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List existing users (GET)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://arch.homework/api/v1/users",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User details (GET)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://arch.homework/api/v1/users/1",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update user (PUT)",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"new-one\",\n    \"email\": \"some-new@email.example\",\n    \"first_name\": \"New first name\",\n    \"last_name\": \"New last name\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://arch.homework/api/v1/users/1",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Partially update user (PATCH)",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"Some first name\",\n    \"last_name\": \"Some last name\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://arch.homework/api/v1/users/1",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete user (DELETE)",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\": \"Some first name\",\n    \"last_name\": \"Some last name\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://arch.homework/api/v1/users/1",
+					"protocol": "http",
+					"host": [
+						"arch",
+						"homework"
+					],
+					"path": [
+						"api",
+						"v1",
+						"users",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -1,0 +1,24 @@
+containerName: "stkrizh/otus-arch:k8s-rest-service"
+replicaCount: 3
+
+image: stkrizh/otus-arch:k8s-rest-service
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: arch.homework
+      paths:
+        - path: /
+          pathType: Prefix
+
+postgresql:
+  fullnameOverride: postgres
+  postgresqlUsername: user
+  postgresqlPassword: passw
+  postgresqlDatabase: dev

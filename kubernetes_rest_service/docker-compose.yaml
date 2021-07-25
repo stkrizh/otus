@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:13.3-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: passw
+      POSTGRES_DB: dev
+    command: postgres -c max_connections=20 -c shared_buffers=200MB
+    volumes:
+      - ./.dbdata/:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  service:
+    build: .
+    image: stkrizh/otus-arch:k8s-rest-service
+    ports:
+      - 8000:8000
+    environment:
+      APP_SECRET_KEY: "django-insecure-xcck**up#)5$y3uyx18@qoz^udm^*gnv^vnx2=0hd&8qt6#1ib"
+      APP_DEBUG: "True"
+      APP_POSTGRES_DATABASE: dev
+      APP_POSTGRES_USERNAME: user
+      APP_POSTGRES_PASSWORD: passw
+      APP_POSTGRES_HOST: postgres
+      APP_POSTGRES_PORT: 5432

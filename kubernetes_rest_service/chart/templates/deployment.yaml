@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image }}"
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: {{ include "chart.fullname" . }}
+          env:
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "chart.fullname" . }}
+                  key: appDebug
+            - name: APP_POSTGRES_HOST
+              value: "{{ .Values.postgresql.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: APP_POSTGRES_PORT
+              value: "5432"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/
+              port: {{ .Values.service.port }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/
+              port: {{ .Values.service.port }}

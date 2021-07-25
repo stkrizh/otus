@@ -6,7 +6,7 @@
 * Install [helm](https://helm.sh/docs/intro/install/)
 
 ## How to run
-_Make sure minikube is running in case of local k8s cluster is being used._
+_Make sure minikube (with ingress addon enabled) is running in case of local k8s cluster is being used._
 
 #### Use the chart directory:
 ```bash

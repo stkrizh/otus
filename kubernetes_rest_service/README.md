@@ -18,6 +18,11 @@ cd ./chart
 helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
 
+#### Add nginx-ingress helm repo
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+```
+
 #### Update chart dependencies:
 ```bash
 helm dep update

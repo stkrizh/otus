@@ -27,3 +27,12 @@ dependencies:
   - name: postgresql
     version: ~10.7.1
     repository: https://charts.bitnami.com/bitnami
+  - name: kube-prometheus
+    version: ~6.1.4
+    repository: https://charts.bitnami.com/bitnami
+  - name: grafana
+    version: ~6.1.5
+    repository: https://charts.bitnami.com/bitnami
+  - name: ingress-nginx
+    version: ~3.34.0
+    repository: https://kubernetes.github.io/ingress-nginx

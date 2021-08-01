@@ -22,3 +22,24 @@ postgresql:
   postgresqlUsername: user
   postgresqlPassword: passw
   postgresqlDatabase: dev
+
+kube-prometheus:
+  prometheus:
+    ingress:
+      enabled: true
+
+grafana:
+  ingress:
+    enabled: true
+  admin:
+    password: "passw"
+
+ingress-nginx:
+  controller:
+    service:
+      externalIPs: [192.168.99.103]
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        scrapeInterval: 10s

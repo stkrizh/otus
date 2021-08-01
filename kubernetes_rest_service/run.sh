@@ -6,7 +6,8 @@ python app/manage.py migrate
 
 echo "Starting Gunicorn ..."
 gunicorn \
-  --workers 4 \
+  --worker-class gthread \
+  --threads 8 \
   --bind 0.0.0.0:8000 \
   --access-logfile - \
   app.config.wsgi

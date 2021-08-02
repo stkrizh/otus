@@ -37,7 +37,7 @@ grafana:
 ingress-nginx:
   controller:
     service:
-      externalIPs: [192.168.99.103]
+      externalIPs: []
     metrics:
       enabled: true
       serviceMonitor:

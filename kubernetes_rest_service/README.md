@@ -30,7 +30,7 @@ helm dep update
 
 #### Install chart:
 ```
-helm upgrade --install k8s-rest-service . -f values.yaml
+helm upgrade --install k8s-rest-service . -f values.yaml --set ingress-nginx.controller.service.externalIPs={$(minikube ip)}
 ```
 _Wait until all pods are ready._
 

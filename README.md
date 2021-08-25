@@ -16,3 +16,4 @@
 
 1. [Kubernetes demo application](https://github.com/stkrizh/otus/tree/master/kubernetes_demo_1)
 2. [Kubernetes demo RESTful service](https://github.com/stkrizh/otus/tree/master/kubernetes_rest_service)
+3. [API gateway demo](https://github.com/stkrizh/otus/tree/master/api_gateway)

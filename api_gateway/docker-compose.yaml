@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:13.3-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: passw
+      POSTGRES_DB: dev
+    command: postgres -c max_connections=100 -c shared_buffers=200MB
+    ports:
+      - 5432:5432
+
+  rabbitmq:
+    image: rabbitmq:3.9.4-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./auth_service/Dockerfile
+    image: stkrizh/otus-arch:api-gateway-auth-service
+    ports:
+      - 8001:8080
+    environment:
+      POSTGRESQL_URL: "postgres://user:passw@postgres:5432/dev"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq/"
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: ./profile_service/Dockerfile
+    image: stkrizh/otus-arch:api-gateway-profile-service
+    ports:
+      - 8002:8080
+    environment:
+      POSTGRESQL_URL: "postgres://user:passw@postgres:5432/dev"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq/"

@@ -1,0 +1,29 @@
+fullnameOverride: api-gateway-app
+
+
+image:
+  auth:
+    repository: stkrizh/otus-arch
+    tag: api-gateway-auth-service
+  profile:
+    repository: stkrizh/otus-arch
+    tag: api-gateway-profile-service
+
+
+service:
+  type: ClusterIP
+  port: 80
+
+
+postgresql:
+  fullnameOverride: postgres
+  postgresqlUsername: user
+  postgresqlPassword: passw
+  postgresqlDatabase: dev
+
+
+rabbitmq:
+  fullnameOverride: rabbitmq
+  auth:
+    username: user
+    password: passw

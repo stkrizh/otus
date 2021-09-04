@@ -1,0 +1,142 @@
+newman
+
+API events
+
+→ Sing-up
+  ┌
+  │ 'Username: User-Evie'
+  └
+  POST http://arch.homework/auth/sign-up [201 Created, 136B, 44ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "username": "User-Evie",\n' +
+  │   '    "password": "password1234"\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ ''
+  └
+  ✓  Status code is 201 (Created)
+
+→ Sign-in
+  ┌
+  │ 'Username: User-Evie'
+  └
+  POST http://arch.homework/auth/sign-in [200 OK, 289B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "username": "User-Evie",\n' +
+  │   '    "password": "password1234"\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"token": "da73dd02afdd5693b2a3dae8ac7cc990a69b56bac5
+  │ aae342d5a56e015b2d5155e8f9192be457c5788e39ead0fe07d39b
+  │ 946d5de317099d2ac49a726871c551c2"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Session token in the response
+  ┌
+  │ 'Session token: da73dd02afdd5693b2a3dae8ac7cc990a69b56
+  │ bac5aae342d5a56e015b2d5155e8f9192be457c5788e39ead0fe07
+  │ d39b946d5de317099d2ac49a726871c551c2'
+  └
+
+→ Add funds (100.00)
+  POST http://arch.homework/billing [200 OK, 168B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n    "amount": "100.00"\n}'
+  │ 'Response body is: '
+  │ '{"balance": "100.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Balance is 100.00
+
+→ Create payment (60.00)
+  POST http://arch.homework/billing/payments [201 Created, 136B, 11ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n    "amount": "60.00"\n}'
+  │ 'Response body is: '
+  │ ''
+  └
+  ✓  Status code is 201 (Created)
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 167B, 5ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "40.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Check notifications
+  GET http://arch.homework/notifications [200 OK, 226B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"status": "succeeded", "created_at": "2021-09-04T19
+  │ :11:50.952501", "id": 17}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check notifications
+
+→ Create payment (60.00) - Insufficient funds
+  POST http://arch.homework/billing/payments [400 Bad Request, 188B, 10ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n    "amount": "60.00"\n}'
+  │ 'Response body is: '
+  │ '{"error": "Insufficient funds."}'
+  └
+  ✓  Status code is 400 (bad request)
+  ✓  Insufficient funds
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 167B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "40.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Check notifications
+  GET http://arch.homework/notifications [200 OK, 305B, 7ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"status": "canceled", "created_at": "2021-09-04T19:
+  │ 11:51.049593", "id": 18}, {"status": "succeeded", "cre
+  │ ated_at": "2021-09-04T19:11:50.952501", "id": 17}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check notifications
+
+┌─────────────────────────┬──────────────────┬──────────────────┐
+│                         │         executed │           failed │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              iterations │                1 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│                requests │                9 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│            test-scripts │               18 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│      prerequest-scripts │               18 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              assertions │               16 │                0 │
+├─────────────────────────┴──────────────────┴──────────────────┤
+│ total run duration: 361ms                                     │
+├───────────────────────────────────────────────────────────────┤
+│ total data received: 470B (approx)                            │
+├───────────────────────────────────────────────────────────────┤
+│ average response time: 11ms [min: 5ms, max: 44ms, s.d.: 11ms] │
+└───────────────────────────────────────────────────────────────┘

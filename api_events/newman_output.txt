@@ -4,13 +4,13 @@ API events
 
 → Sing-up
   ┌
-  │ 'Username: User-Evie'
+  │ 'Username: User-Bonnie'
   └
   POST http://arch.homework/auth/sign-up [201 Created, 136B, 44ms]
   ┌
   │ 'Request body is: '
   │ '{\n' +
-  │   '    "username": "User-Evie",\n' +
+  │   '    "username": "User-Bonnie",\n' +
   │   '    "password": "password1234"\n' +
   │   '}'
   │ 'Response body is: '
@@ -20,56 +20,99 @@ API events
 
 → Sign-in
   ┌
-  │ 'Username: User-Evie'
+  │ 'Username: User-Bonnie'
   └
   POST http://arch.homework/auth/sign-in [200 OK, 289B, 6ms]
   ┌
   │ 'Request body is: '
   │ '{\n' +
-  │   '    "username": "User-Evie",\n' +
+  │   '    "username": "User-Bonnie",\n' +
   │   '    "password": "password1234"\n' +
   │   '}'
   │ 'Response body is: '
-  │ '{"token": "da73dd02afdd5693b2a3dae8ac7cc990a69b56bac5
-  │ aae342d5a56e015b2d5155e8f9192be457c5788e39ead0fe07d39b
-  │ 946d5de317099d2ac49a726871c551c2"}'
+  │ '{"token": "9c55d2d520d247979a2e53ee2d02a5cb4e27cdae25
+  │ 48138ae24cde8e8cce8e14e007fe2cc7bd3756925d1590fedeb28d
+  │ 8d08552de77bb3c8014ea5d75d3d77da"}'
   └
   ✓  Status code is 200 (OK)
   ✓  Session token in the response
   ┌
-  │ 'Session token: da73dd02afdd5693b2a3dae8ac7cc990a69b56
-  │ bac5aae342d5a56e015b2d5155e8f9192be457c5788e39ead0fe07
-  │ d39b946d5de317099d2ac49a726871c551c2'
+  │ 'Session token: 9c55d2d520d247979a2e53ee2d02a5cb4e27cd
+  │ ae2548138ae24cde8e8cce8e14e007fe2cc7bd3756925d1590fede
+  │ b28d8d08552de77bb3c8014ea5d75d3d77da'
   └
 
-→ Add funds (100.00)
-  POST http://arch.homework/billing [200 OK, 168B, 6ms]
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 180B, 10ms]
   ┌
   │ 'Request body is: '
-  │ '{\n    "amount": "100.00"\n}'
+  │ '...'
   │ 'Response body is: '
-  │ '{"balance": "100.00"}'
+  │ '{"balance": "0.00", "version": 1}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Add funds (100.00) - valid version
+  POST http://arch.homework/billing [200 OK, 182B, 8ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "amount": "100.00",\n' +
+  │   '    "version": 1\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"balance": "100.00", "version": 2}'
   └
   ✓  Status code is 200 (OK)
   ✓  Balance is 100.00
 
-→ Create payment (60.00)
-  POST http://arch.homework/billing/payments [201 Created, 136B, 11ms]
+→ Add funds (100.00) - invalid version
+  POST http://arch.homework/billing [412 Precondition Failed, 148B, 12ms]
   ┌
   │ 'Request body is: '
-  │ '{\n    "amount": "60.00"\n}'
+  │ '{\n' +
+  │   '    "amount": "100.00",\n' +
+  │   '    "version": 1\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ ''
+  └
+  ✓  Status code is 412 (Precondition Failed)
+
+→ Create payment (60.00) - valid version
+  POST http://arch.homework/billing/payments [201 Created, 136B, 15ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "amount": "60.00",\n' +
+  │   '    "version": 2\n' +
+  │   '}'
   │ 'Response body is: '
   │ ''
   └
   ✓  Status code is 201 (Created)
 
+→ Create payment (60.00) - invalid version
+  POST http://arch.homework/billing/payments [412 Precondition Failed, 148B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "amount": "60.00",\n' +
+  │   '    "version": 2\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ ''
+  └
+  ✓  Status code is 412 (Precondition Failed)
+
 → Check account balance
-  GET http://arch.homework/billing [200 OK, 167B, 5ms]
+  GET http://arch.homework/billing [200 OK, 181B, 5ms]
   ┌
   │ 'Request body is: '
   │ '...'
   │ 'Response body is: '
-  │ '{"balance": "40.00"}'
+  │ '{"balance": "40.00", "version": 3}'
   └
   ✓  Status code is 200 (OK)
   ✓  Check account balance
@@ -80,17 +123,20 @@ API events
   │ 'Request body is: '
   │ '...'
   │ 'Response body is: '
-  │ '[{"status": "succeeded", "created_at": "2021-09-04T19
-  │ :11:50.952501", "id": 17}]'
+  │ '[{"id": 11, "created_at": "2021-09-25T14:02:28.030666
+  │ ", "status": "succeeded"}]'
   └
   ✓  Status code is 200 (OK)
   ✓  Check notifications
 
 → Create payment (60.00) - Insufficient funds
-  POST http://arch.homework/billing/payments [400 Bad Request, 188B, 10ms]
+  POST http://arch.homework/billing/payments [400 Bad Request, 188B, 12ms]
   ┌
   │ 'Request body is: '
-  │ '{\n    "amount": "60.00"\n}'
+  │ '{\n' +
+  │   '    "amount": "60.00",\n' +
+  │   '    "version": 3\n' +
+  │   '}'
   │ 'Response body is: '
   │ '{"error": "Insufficient funds."}'
   └
@@ -98,25 +144,25 @@ API events
   ✓  Insufficient funds
 
 → Check account balance
-  GET http://arch.homework/billing [200 OK, 167B, 6ms]
+  GET http://arch.homework/billing [200 OK, 181B, 5ms]
   ┌
   │ 'Request body is: '
   │ '...'
   │ 'Response body is: '
-  │ '{"balance": "40.00"}'
+  │ '{"balance": "40.00", "version": 3}'
   └
   ✓  Status code is 200 (OK)
   ✓  Check account balance
 
 → Check notifications
-  GET http://arch.homework/notifications [200 OK, 305B, 7ms]
+  GET http://arch.homework/notifications [200 OK, 305B, 5ms]
   ┌
   │ 'Request body is: '
   │ '...'
   │ 'Response body is: '
-  │ '[{"status": "canceled", "created_at": "2021-09-04T19:
-  │ 11:51.049593", "id": 18}, {"status": "succeeded", "cre
-  │ ated_at": "2021-09-04T19:11:50.952501", "id": 17}]'
+  │ '[{"id": 12, "created_at": "2021-09-25T14:02:28.167050
+  │ ", "status": "canceled"}, {"id": 11, "created_at": "20
+  │ 21-09-25T14:02:28.030666", "status": "succeeded"}]'
   └
   ✓  Status code is 200 (OK)
   ✓  Check notifications
@@ -126,17 +172,17 @@ API events
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │              iterations │                1 │                0 │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│                requests │                9 │                0 │
+│                requests │               12 │                0 │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│            test-scripts │               18 │                0 │
+│            test-scripts │               24 │                0 │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│      prerequest-scripts │               18 │                0 │
+│      prerequest-scripts │               24 │                0 │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│              assertions │               16 │                0 │
+│              assertions │               20 │                0 │
 ├─────────────────────────┴──────────────────┴──────────────────┤
-│ total run duration: 361ms                                     │
+│ total run duration: 505ms                                     │
 ├───────────────────────────────────────────────────────────────┤
-│ total data received: 470B (approx)                            │
+│ total data received: 545B (approx)                            │
 ├───────────────────────────────────────────────────────────────┤
-│ average response time: 11ms [min: 5ms, max: 44ms, s.d.: 11ms] │
+│ average response time: 11ms [min: 5ms, max: 44ms, s.d.: 10ms] │
 └───────────────────────────────────────────────────────────────┘

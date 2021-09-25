@@ -14,7 +14,8 @@ INIT_DB_TABLES = """
 
     CREATE TABLE IF NOT EXISTS billing.account (
         user_id INTEGER PRIMARY KEY,
-        balance NUMERIC(13,2) NOT NULL
+        balance NUMERIC(13,2) NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1
     );
 """
 

@@ -60,18 +60,32 @@ async def add_funds(request: web.Request) -> web.Response:
     pool = request.app["pg_pool"]
 
     async with pool.acquire() as connection:
-        row = await connection.fetchrow(
-            """
-            UPDATE billing.account SET balance = balance + $1
-            WHERE user_id = $2 
-            RETURNING *
-            """,
-            request_body.get("amount"),
-            user_id,
-        )
+        async with connection.transaction():
+            row = await connection.fetchrow(
+                """
+                SELECT * FROM billing.account WHERE user_id = $1 
+                FOR UPDATE
+                """,
+                user_id,
+            )
 
-    if row is None:
-        return web.json_response(status=404)
+            if row is None:
+                return web.json_response(status=404)
+
+            if row["version"] != request_body["version"]:
+                return web.json_response(status=412)
+
+            row = await connection.fetchrow(
+                """
+                UPDATE billing.account SET 
+                    balance = balance + $1, 
+                    version = version + 1
+                WHERE user_id = $2
+                RETURNING *
+                """,
+                request_body["amount"],
+                user_id,
+            )
 
     response_schema = AccountSchema()
     return web.json_response(response_schema.dump(row))
@@ -98,13 +112,20 @@ async def create_payment(request: web.Request) -> web.Response:
                 """,
                 user_id,
             )
+
+            if row is None:
+                return web.json_response(status=404)
+
+            if row["version"] != request_body["version"]:
+                return web.json_response(status=412)
+
             if row["balance"] < request_body["amount"]:
                 await _notify_payment_canceled(amqp_connection, user_id, request_body["amount"])
                 return web.json_response({"error": "Insufficient funds."}, status=400)
 
             await connection.fetchrow(
                 """
-                UPDATE billing.account SET balance = balance - $1
+                UPDATE billing.account SET balance = balance - $1, version = version + 1
                 WHERE user_id = $2
                 """,
                 request_body["amount"],

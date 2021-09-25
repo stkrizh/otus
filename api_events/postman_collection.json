@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "35dd2898-24f9-4eee-8eb5-3d9d3bc3a76c",
+		"_postman_id": "eca31a6a-730a-4a77-b254-aac8e35475e7",
 		"name": "API events",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -116,7 +116,59 @@
 			"response": []
 		},
 		{
-			"name": "Add funds (100.00)",
+			"name": "Check account balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check account balance\", () => {",
+							"  pm.expect(jsonData.balance).to.equal(\"0.00\");",
+							"  pm.expect(jsonData.version).to.equal(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/billing",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add funds (100.00) - valid version",
 			"event": [
 				{
 					"listen": "test",
@@ -129,6 +181,7 @@
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Balance is 100.00\", () => {",
 							"  pm.expect(jsonData.balance).to.be.equal(\"100.00\");",
+							"  pm.expect(jsonData.version).to.be.equal(2);",
 							"});",
 							""
 						],
@@ -156,7 +209,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"amount\": \"100.00\"\n}",
+					"raw": "{\n    \"amount\": \"100.00\",\n    \"version\": 1\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -177,7 +230,63 @@
 			"response": []
 		},
 		{
-			"name": "Create payment (60.00)",
+			"name": "Add funds (100.00) - invalid version",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 412 (Precondition Failed)\", () => {",
+							"  pm.response.to.have.status(412);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"100.00\",\n    \"version\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/billing",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create payment (60.00) - valid version",
 			"event": [
 				{
 					"listen": "test",
@@ -211,7 +320,63 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"amount\": \"60.00\"\n}",
+					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 2\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/billing/payments",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing",
+						"payments"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create payment (60.00) - invalid version",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 412 (Precondition Failed)\", () => {",
+							"  pm.response.to.have.status(412);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 2\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -246,6 +411,7 @@
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Check account balance\", () => {",
 							"  pm.expect(jsonData.balance).to.equal(\"40.00\");",
+							"  pm.expect(jsonData.version).to.equal(3);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -375,7 +541,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"amount\": \"60.00\"\n}",
+					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 3\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -410,6 +576,7 @@
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Check account balance\", () => {",
 							"  pm.expect(jsonData.balance).to.equal(\"40.00\");",
+							"  pm.expect(jsonData.version).to.equal(3);",
 							"});"
 						],
 						"type": "text/javascript"

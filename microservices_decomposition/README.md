@@ -110,7 +110,7 @@ _Я хочу вернуть электросамокат из аренды_
 
 Общая неформальная схема взаимодействия микросервисов показана ниже:
 
-![](https://habrastorage.org/webt/j_/cx/rb/j_cxrbcdt0s6zj9nx1vbx4g6bn8.png)
+![](https://habrastorage.org/webt/zh/d5/cm/zhd5cmgfzqsffg8wuld6rkm3csi.png)
 
 _Стрелками показана прямая зависимость, пунктирной линией — событийное взаимодействие_
 

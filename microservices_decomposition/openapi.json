@@ -1,0 +1,313 @@
+openapi: 3.0.1
+info:
+  title: Сервис аренды электросамокатов
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+- url: http://arch.homework/api/v1
+tags:
+- name: Аккаунты и аутентификация
+- name: Платежи и управление счётом
+- name: Операции с электросамокатами
+- name: Уведомления
+paths:
+  /auth/sign-up:
+    post:
+      tags:
+      - Аккаунты и аутентификация
+      summary: Регистрация нового аккаунта
+      requestBody:
+        description: Данные для регистрации аккаунта
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpInput'
+        required: true
+      responses:
+        201:
+          description: Новый аккаунт успешно зарегистрирован
+          content: {}
+        400:
+          description: Ошибка во входных данных, не удалось зарегистрировать аккаунт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /auth/sign-in:
+    post:
+      tags:
+      - Аккаунты и аутентификация
+      summary: Аутентификация пользователя по email и паролю
+      requestBody:
+        description: Данные для аутентификации пользователя
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInInput'
+        required: true
+      responses:
+        200:
+          description: Пользователь аутентифицирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignIn'
+        400:
+          description: Ошибка во входных данных, не удалось аутентифицировать пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /billing:
+    get:
+      tags:
+      - Платежи и управление счётом
+      summary: Проверить текущий баланс
+      responses:
+        200:
+          description: Актуальный остаток средств на счёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+    post:
+      tags:
+      - Платежи и управление счётом
+      summary: Пополнить текущий баланс
+      requestBody:
+        description: Сумма пополнения
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceInput'
+        required: true
+      responses:
+        200:
+          description: Актуальный остаток средств на счёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        400:
+          description: Ошибка во входных данных, не удалось пополнить баланс пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      security:
+        - bearerAuth: []
+  
+  /scooters:
+    get:
+      tags:
+      - "Операции с электросамокатами"
+      summary: Получить список ближайших электросамокатов доступных для аренды
+      responses:
+        200:
+          description: Cписок ближайших электросамокатов доступных для аренды
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scooter'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+
+  /scooters/{scooterId}/order:
+    put:
+      tags:
+      - "Операции с электросамокатами"
+      summary: "Начать аренду электросамоката"
+      parameters:
+      - name: scooterId
+        in: path
+        description: ID электросамоката
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: Аренда начата успешно
+        400:
+          description: Не удалось начать аренду электросамоката
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          description: Электросамокат не найден
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+      - "Операции с электросамокатами"
+      summary: "Закончить аренду электросамоката"
+      parameters:
+      - name: scooterId
+        in: path
+        description: ID электросамоката
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        204:
+          description: Аренда закончена успешно
+        400:
+          description: Не удалось закончить аренду электросамоката
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          description: Электросамокат не найден
+      security:
+        - bearerAuth: []
+  
+  /notifications:
+    get:
+      tags:
+      - "Уведомления"
+      summary: Получить список уведомлений для текущего пользователя
+      responses:
+        200:
+          description: Cписок уведомлений для текущего пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+  
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    SignUpInput:
+      type: object
+      properties:
+        email:
+          maxLength: 256
+          minLength: 5
+          type: string
+          format: email
+        password:
+          maxLength: 256
+          minLength: 6
+          type: string
+      required:
+        - email
+        - password
+    SignInInput:
+      type: object
+      properties:
+        email:
+          maxLength: 256
+          minLength: 5
+          type: string
+          format: email
+        password:
+          maxLength: 256
+          type: string
+          format: password
+      required:
+        - email
+        - password
+    SignIn:
+      type: object
+      properties:
+        token:
+          maxLength: 256
+          minLength: 256
+          type: string
+      required:
+        - token
+    BalanceInput:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          example: "10.00"
+      required:
+        - amount
+    Balance:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          example: "123.50"
+      required:
+        - amount
+    
+    Scooter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        charge:
+          type: number
+          minimum: 0
+          maximum: 100          
+        latitude:
+          type: string
+          format: decimal
+          example: "54.7037638"
+        longitude:
+          type: string
+          format: decimal
+          example: "20.5103652"
+      required:
+        - id
+        - charge
+        - latitude
+        - longitude
+    
+    Notification:
+      type: object
+      properties:
+        id:
+          type: number
+        message:
+          type: string
+      required:
+        - id
+        - message
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  
+  responses:
+    UnauthorizedError:
+      description: "Невалидный сессионный токен"

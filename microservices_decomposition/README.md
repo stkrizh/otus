@@ -140,8 +140,8 @@ _Стрелками показана прямая зависимость, пун
 Компонент системы, который позволяет организовать событийное взаимодействие между сервисами.
 
 ## Спецификация API
-* [Публичный API](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/openapi.json)
-* [Служебный API сервиса управления аккаунтами](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/auth-service-openapi.json)
-* [Служебный API сервиса управления электросамокатами](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/scooters-management-service-openapi.json)
-* [Служебный API сервиса платежей](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/payments-service-openapi.json)
-* [Служебный API сервиса уведомлений](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/notification-service-openapi.json)
+* [Публичный API](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/openapi.yaml)
+* [Служебный API сервиса управления аккаунтами](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/auth-service-openapi.yaml)
+* [Служебный API сервиса управления электросамокатами](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/scooters-management-service-openapi.yaml)
+* [Служебный API сервиса платежей](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/payments-service-openapi.yaml)
+* [Служебный API сервиса уведомлений](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/notification-service-openapi.yaml)

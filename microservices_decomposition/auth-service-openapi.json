@@ -1,0 +1,131 @@
+openapi: 3.0.1
+info:
+  title: Сервис управления аккаунтами пользователей
+  version: 1.0.0
+tags:
+- name: Аккаунты и аутентификация
+paths:
+  /:
+    get:
+      tags:
+      - Аккаунты и аутентификация
+      summary: Аутентификация пользователя по сессионному токену
+      description: Метод вызывается компонентом API gateway для аутентификации пользователя 
+      responses:
+        200:
+          description: Пользователь аутентифицирован
+          headers:
+            X-User-Id:
+              schema:
+                type: integer
+              description: ID аутентифицированного пользователя
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      security:
+        - bearerAuth: []
+  /sign-up:
+    post:
+      tags:
+      - Аккаунты и аутентификация
+      summary: Регистрация нового аккаунта
+      requestBody:
+        description: Данные для регистрации аккаунта
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpInput'
+        required: true
+      responses:
+        201:
+          description: Новый аккаунт успешно зарегистрирован
+          content: {}
+        400:
+          description: Ошибка во входных данных, не удалось зарегистрировать аккаунт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /sign-in:
+    post:
+      tags:
+      - Аккаунты и аутентификация
+      summary: Аутентификация пользователя по email и паролю
+      requestBody:
+        description: Данные для аутентификации пользователя
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInInput'
+        required: true
+      responses:
+        200:
+          description: Пользователь аутентифицирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignIn'
+        400:
+          description: Ошибка во входных данных, не удалось аутентифицировать пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    SignUpInput:
+      type: object
+      properties:
+        email:
+          maxLength: 256
+          minLength: 5
+          type: string
+          format: email
+        password:
+          maxLength: 256
+          minLength: 6
+          type: string
+      required:
+        - email
+        - password
+    SignInInput:
+      type: object
+      properties:
+        email:
+          maxLength: 256
+          minLength: 5
+          type: string
+          format: email
+        password:
+          maxLength: 256
+          type: string
+          format: password
+      required:
+        - email
+        - password
+    SignIn:
+      type: object
+      properties:
+        token:
+          maxLength: 256
+          minLength: 256
+          type: string
+      required:
+        - token
+  
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  
+  responses:
+    UnauthorizedError:
+      description: "Невалидный сессионный токен"

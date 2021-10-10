@@ -1,0 +1,127 @@
+openapi: 3.0.1
+info:
+  title: Сервис платежей
+  version: 1.0.0
+tags:
+- name: Платежи и управление счётом
+paths:
+  /:
+    get:
+      tags:
+      - Платежи и управление счётом
+      summary: Проверить текущий баланс
+      parameters:
+      - in: header
+        name: X-User-Id
+        schema:
+          type: integer
+        required: true
+      responses:
+        200:
+          description: Актуальный остаток средств на счёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+    post:
+      tags:
+      - Платежи и управление счётом
+      summary: Пополнить текущий баланс
+      parameters:
+      - in: header
+        name: X-User-Id
+        schema:
+          type: integer
+        required: true
+      requestBody:
+        description: Сумма пополнения
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceInput'
+        required: true
+      responses:
+        200:
+          description: Актуальный остаток средств на счёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        400:
+          description: Ошибка во входных данных, не удалось пополнить баланс пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /payments:
+    post:
+      tags:
+      - Платежи и управление счётом
+      summary: Произвести оплату
+      parameters:
+      - in: header
+        name: X-User-Id
+        schema:
+          type: integer
+        required: true
+      requestBody:
+        description: Сумма платежа
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  format: decimal
+                  example: "17.59"
+              required:
+                - amount
+      responses:
+        200:
+          description: Актуальный остаток средств на счёте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        400:
+          description: Ошибка во входных данных, не удалось выполнить платеж
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        402:
+          description: Недостаточно средств на счёте, не удалось выполнить платеж
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    BalanceInput:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          example: "10.00"
+      required:
+        - amount
+    Balance:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          example: "123.50"
+      required:
+        - amount

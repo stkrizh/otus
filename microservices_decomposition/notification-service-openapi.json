@@ -1,0 +1,40 @@
+openapi: 3.0.1
+info:
+  title: Сервис платежей
+  version: 1.0.0
+tags:
+- name: Платежи и управление счётом
+paths:
+    /notifications:
+      get:
+        tags:
+        - "Уведомления"
+        summary: Получить список уведомлений для текущего пользователя
+        parameters:
+        - in: header
+          name: X-User-Id
+          schema:
+            type: integer
+          required: true
+        responses:
+          200:
+            description: Cписок уведомлений для текущего пользователя
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Notification'
+
+components:
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: number
+        message:
+          type: string
+      required:
+        - id
+        - message

@@ -1,0 +1,119 @@
+openapi: 3.0.1
+info:
+  title: Сервис управления электросамокатами
+  version: 1.0.0
+tags:
+- name: Операции с электросамокатами
+paths:
+  /:
+    get:
+      tags:
+      - "Операции с электросамокатами"
+      summary: Получить список ближайших электросамокатов доступных для аренды
+      parameters:
+        - in: header
+          name: X-User-Id
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: Cписок ближайших электросамокатов доступных для аренды
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scooter'
+
+  /{scooterId}/order:
+    put:
+      tags:
+      - "Операции с электросамокатами"
+      summary: "Начать аренду электросамоката"
+      parameters:
+      - in: header
+        name: X-User-Id
+        schema:
+          type: integer
+        required: true
+      - name: scooterId
+        in: path
+        description: ID электросамоката
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: Аренда начата успешно
+        400:
+          description: Не удалось начать аренду электросамоката
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        404:
+          description: Электросамокат не найден
+
+    delete:
+      tags:
+      - "Операции с электросамокатами"
+      summary: "Закончить аренду электросамоката"
+      parameters:
+      - in: header
+        name: X-User-Id
+        schema:
+          type: integer
+        required: true
+      - name: scooterId
+        in: path
+        description: ID электросамоката
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        204:
+          description: Аренда закончена успешно
+        400:
+          description: Не удалось закончить аренду электросамоката
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        404:
+          description: Электросамокат не найден
+
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    Scooter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        charge:
+          type: number
+          minimum: 0
+          maximum: 100          
+        latitude:
+          type: string
+          format: decimal
+          example: "54.7037638"
+        longitude:
+          type: string
+          format: decimal
+          example: "20.5103652"
+      required:
+        - id
+        - charge
+        - latitude
+        - longitude

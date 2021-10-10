@@ -145,3 +145,9 @@ _Стрелками показана прямая зависимость, пун
 * [Служебный API сервиса управления электросамокатами](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/scooters-management-service-openapi.yaml)
 * [Служебный API сервиса платежей](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/payments-service-openapi.yaml)
 * [Служебный API сервиса уведомлений](https://github.com/stkrizh/otus/blob/master/microservices_decomposition/notification-service-openapi.yaml)
+
+## Системные события
+* Новый пользователь зарегистрирован
+* Добавлены денежные средства на счёт пользователя
+* Начата аренда электросамоката
+* Закончена аренда электросамоката

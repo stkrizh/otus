@@ -1,0 +1,32 @@
+fullnameOverride: api-events-app
+
+
+image:
+  auth:
+    repository: stkrizh/otus-arch
+    tag: api-events-auth-service
+  billing:
+    repository: stkrizh/otus-arch
+    tag: api-events-billing-service
+  notification:
+    repository: stkrizh/otus-arch
+    tag: api-events-notification-service
+
+
+service:
+  type: ClusterIP
+  port: 80
+
+
+postgresql:
+  fullnameOverride: postgres
+  postgresqlUsername: user
+  postgresqlPassword: passw
+  postgresqlDatabase: dev
+
+
+rabbitmq:
+  fullnameOverride: rabbitmq
+  auth:
+    username: user
+    password: passw

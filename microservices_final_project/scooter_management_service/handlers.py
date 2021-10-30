@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 
 import aio_pika
 from aiohttp import web
@@ -40,7 +41,6 @@ async def start_rent(request: web.Request) -> web.Response:
 
     user_id = request["user_id"]
     scooter_id = str(request_body["scooter_id"])
-    version = request_body["version"]
 
     async with pool.acquire() as connection:
         async with connection.transaction():
@@ -60,7 +60,11 @@ async def start_rent(request: web.Request) -> web.Response:
                 return web.json_response(status=404)
 
             async with amqp_connection.channel() as channel:
-                payload = {"user_id": user_id, "scooter_id": scooter_id, "version": version}
+                payload = {
+                    "user_id": user_id,
+                    "scooter_id": scooter_id,
+                    "idempotency_key": uuid4().hex,
+                }
                 await channel.default_exchange.publish(
                     aio_pika.Message(body=json.dumps(payload).encode()),
                     routing_key="rent.pending",

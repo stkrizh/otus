@@ -16,4 +16,3 @@ class RentSchema(Schema):
 
 class StartRentSchema(Schema):
     scooter_id = fields.UUID(required=True)
-    version = fields.Integer(required=True)

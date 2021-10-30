@@ -7,7 +7,8 @@ import aio_pika
 import asyncpg
 from aiohttp import web
 
-from notification_service.handlers import create_notification, get_notifications, health
+from notification_service.handlers import create_notification_on_payment_succeeded, get_notifications, health
+
 
 INIT_DB_TABLES = """
     CREATE SCHEMA IF NOT EXISTS notification;
@@ -17,6 +18,7 @@ INIT_DB_TABLES = """
         user_id INTEGER NOT NULL,
         event TEXT NOT NULL,
         created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+        idempotency_key TEXT NOT NULL UNIQUE,
     );
 """
 
@@ -39,10 +41,10 @@ async def init_amqp_connection(app: web.Application) -> t.AsyncIterator[None]:
 
         async with connection.channel() as channel:
             queue_succeeded = await channel.declare_queue("payment.succeeded", auto_delete=True)
-            await queue_succeeded.consume(partial(create_notification, app["pg_pool"]))
+            await queue_succeeded.consume(partial(create_notification_on_payment_succeeded, app["pg_pool"], connection))
 
-            queue_cancelled = await channel.declare_queue("payment.canceled", auto_delete=True)
-            await queue_cancelled.consume(partial(create_notification, app["pg_pool"]))
+            # queue_cancelled = await channel.declare_queue("payment.canceled", auto_delete=True)
+            # await queue_cancelled.consume(partial(create_notification, app["pg_pool"]))
 
             yield
 

@@ -54,13 +54,18 @@ async def init_pg_pool(app: web.Application) -> asyncpg.Pool:
             count = await connection.fetchval("SELECT COUNT(id) FROM scooter.scooter")
 
             if count == 0:
-                for _ in range(20):
+                scooter_ids = [
+                    "test-billing-service-fails",
+                    "test-notification-service-fails",
+                    *(uuid4() for _ in range(8)),
+                ]
+                for scooter_id in scooter_ids:
                     await connection.execute(
                         """
                         INSERT INTO scooter.scooter  (id, charge, latitude, longitude) VALUES
                         ($1, $2, $3, $4)
                         """,
-                        uuid4(),
+                        scooter_id,
                         random() * 100,
                         random() * 180 - 90,
                         random() * 360 - 180,
@@ -76,10 +81,10 @@ async def init_amqp_connection(app: web.Application) -> t.AsyncIterator[None]:
         app["amqp_connection"] = connection
 
         async with connection.channel() as channel:
-            queue_rent_activation = await channel.declare_queue("rent.activated")
+            queue_rent_activation = await channel.declare_queue("rent.notification.succeeded")
             await queue_rent_activation.consume(partial(activate_rent, app["pg_pool"]))
 
-            queue_rent_canceling = await channel.declare_queue("rent.canceled")
+            queue_rent_canceling = await channel.declare_queue("payment.canceled")
             await queue_rent_canceling.consume(partial(cancel_rent, app["pg_pool"]))
 
             yield

@@ -15,8 +15,13 @@ INIT_DB_TABLES = """
     CREATE TABLE IF NOT EXISTS billing.account (
         user_id INTEGER PRIMARY KEY,
         balance NUMERIC(13,2) NOT NULL,
-        version INTEGER NOT NULL DEFAULT 1
     );
+    
+    CREATE TABLE IF NOT EXISTS billing.payment (
+        user_id INTEGER PRIMARY KEY,
+        amount NUMERIC(13,2) NOT NULL,
+        idempotency_key TEXT NOT NULL UNIQUE
+    )
 """
 
 
@@ -42,6 +47,9 @@ async def init_amqp_connection(app: web.Application) -> t.AsyncIterator[None]:
 
             rent_pending_queue = await channel.declare_queue("rent.pending", auto_delete=True)
             await rent_pending_queue.consume(partial(create_payment, app["pg_pool"], connection))
+
+            rent_notification_failed_queue = await channel.declare_queue("rent.notification.failed", auto_delete=True)
+            await rent_notification_failed_queue.consume(partial(cancel_payment, app["pg_pool"], connection))
 
             yield
 

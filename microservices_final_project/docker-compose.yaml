@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: ./auth_service/Dockerfile
-    image: stkrizh/otus-arch:api-events-auth-service
+    image: stkrizh/otus-arch:final-auth-service
     ports:
       - 8001:8080
     environment:
@@ -32,9 +32,9 @@ services:
     build:
       context: .
       dockerfile: billing_service/Dockerfile
-    image: stkrizh/otus-arch:api-events-billing-service
+    image: stkrizh/otus-arch:final-billing-service
     ports:
-      - 8002:8080
+      - 8002:8081
     environment:
       POSTGRESQL_URL: "postgres://user:passw@postgres:5432/dev"
       RABBITMQ_URL: "amqp://guest:guest@rabbitmq/"
@@ -43,9 +43,20 @@ services:
     build:
       context: .
       dockerfile: notification_service/Dockerfile
-    image: stkrizh/otus-arch:api-events-notification-service
+    image: stkrizh/otus-arch:final-notification-service
     ports:
-      - 8003:8080
+      - 8003:8082
+    environment:
+      POSTGRESQL_URL: "postgres://user:passw@postgres:5432/dev"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq/"
+
+  scooter-management-service:
+    build:
+      context: .
+      dockerfile: scooter_management_service/Dockerfile
+    image: stkrizh/otus-arch:final-scooter-management-service
+    ports:
+      - 8004:8083
     environment:
       POSTGRESQL_URL: "postgres://user:passw@postgres:5432/dev"
       RABBITMQ_URL: "amqp://guest:guest@rabbitmq/"

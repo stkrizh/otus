@@ -1,4 +1,4 @@
-# Microservices final project
+# Scooter rent service (final project)
 
 
 ## Prerequisites
@@ -32,7 +32,7 @@ helm dep update
 
 #### Install the chart
 ```bash
-helm upgrade --install api-events . -f ./values.yaml
+helm upgrade --install scooter-rent-v1 . -f ./values.yaml
 ```
 _Wait about 2-3 mins for all pods are ready._
 

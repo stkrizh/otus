@@ -57,3 +57,24 @@ spec:
   selector:
     {{- include "chart.selectorLabels" . | nindent 4 }}
     app: notification
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "chart.fullname" . }}-scooter-management
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    app: scooter-management
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "chart.selectorLabels" . | nindent 4 }}
+    app: scooter-management

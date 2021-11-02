@@ -75,7 +75,7 @@ spec:
               value: "amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Values.rabbitmq.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local"
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 8081
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -121,7 +121,53 @@ spec:
               value: "amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Values.rabbitmq.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local"
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: 8082
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+
+
+---
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}-scooter-management
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+      app: scooter-management
+  template:
+    metadata:
+      labels:
+        {{- include "chart.selectorLabels" . | nindent 8 }}
+        app: scooter-management
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.scooter.repository }}:{{ .Values.image.scooter.tag }}"
+          imagePullPolicy: Always
+          env:
+            - name: POSTGRESQL_URL
+              value: "postgres://{{ .Values.postgresql.postgresqlUsername }}:{{ .Values.postgresql.postgresqlPassword }}@{{ .Values.postgresql.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local:5432/{{ .Values.postgresql.postgresqlDatabase }}"
+            - name: RABBITMQ_URL
+              value: "amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Values.rabbitmq.fullnameOverride }}.{{ .Release.Namespace }}.svc.cluster.local"
+          ports:
+            - name: http
+              containerPort: 8083
               protocol: TCP
           livenessProbe:
             httpGet:

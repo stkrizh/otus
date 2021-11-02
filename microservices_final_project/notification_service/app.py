@@ -7,8 +7,13 @@ import aio_pika
 import asyncpg
 from aiohttp import web
 
-from notification_service.handlers import create_notification_on_payment_succeeded, get_notifications, health
-
+from notification_service.handlers import (
+    create_notification_on_funds_transferred,
+    create_notification_on_payment_succeeded,
+    create_notification_on_rent_finished,
+    get_notifications,
+    health,
+)
 
 INIT_DB_TABLES = """
     CREATE SCHEMA IF NOT EXISTS notification;
@@ -18,7 +23,8 @@ INIT_DB_TABLES = """
         user_id INTEGER NOT NULL,
         event TEXT NOT NULL,
         created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-        idempotency_key TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL,
+        UNIQUE (user_id, idempotency_key)
     );
 """
 
@@ -40,11 +46,20 @@ async def init_amqp_connection(app: web.Application) -> t.AsyncIterator[None]:
         app["amqp_connection"] = connection
 
         async with connection.channel() as channel:
-            queue_succeeded = await channel.declare_queue("payment.succeeded", auto_delete=True)
-            await queue_succeeded.consume(partial(create_notification_on_payment_succeeded, app["pg_pool"], connection))
+            queue_payment_succeeded = await channel.declare_queue("payment.succeeded", auto_delete=True)
+            await queue_payment_succeeded.consume(
+                partial(create_notification_on_payment_succeeded, app["pg_pool"], connection),
+            )
 
-            # queue_cancelled = await channel.declare_queue("payment.canceled", auto_delete=True)
-            # await queue_cancelled.consume(partial(create_notification, app["pg_pool"]))
+            queue_funds_transferred = await channel.declare_queue("funds.transferred", auto_delete=True)
+            await queue_funds_transferred.consume(
+                partial(create_notification_on_funds_transferred, app["pg_pool"]),
+            )
+
+            queue_rent_finished = await channel.declare_queue("rent.finished", auto_delete=True)
+            await queue_rent_finished.consume(
+                partial(create_notification_on_rent_finished, app["pg_pool"]),
+            )
 
             yield
 
@@ -78,4 +93,4 @@ async def init_app() -> web.Application:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    web.run_app(init_app())
+    web.run_app(init_app(), port=8082)

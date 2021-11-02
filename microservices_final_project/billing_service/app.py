@@ -7,21 +7,23 @@ import aio_pika
 import asyncpg
 from aiohttp import web
 
-from billing_service.handlers import add_funds, create_account, create_payment, get_balance, health
+from billing_service.handlers import add_funds, create_account, create_payment, get_balance, health, cancel_payment
 
 INIT_DB_TABLES = """
     CREATE SCHEMA IF NOT EXISTS billing;
 
     CREATE TABLE IF NOT EXISTS billing.account (
         user_id INTEGER PRIMARY KEY,
-        balance NUMERIC(13,2) NOT NULL,
+        balance NUMERIC(13,2) NOT NULL
     );
     
     CREATE TABLE IF NOT EXISTS billing.payment (
-        user_id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES billing.account (user_id),
         amount NUMERIC(13,2) NOT NULL,
-        idempotency_key TEXT NOT NULL UNIQUE
-    )
+        idempotency_key TEXT NOT NULL,
+        UNIQUE (user_id, idempotency_key)
+    );
 """
 
 
@@ -84,4 +86,4 @@ async def init_app() -> web.Application:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    web.run_app(init_app())
+    web.run_app(init_app(), port=8081)

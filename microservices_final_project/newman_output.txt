@@ -1,0 +1,331 @@
+newman
+
+Scooter rent
+
+→ Sing-up
+  ┌
+  │ 'Username: User-Van'
+  └
+  POST http://arch.homework/auth/sign-up [201 Created, 136B, 43ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "username": "User-Van",\n' +
+  │   '    "password": "password1234"\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ ''
+  └
+  ✓  Status code is 201 (Created)
+
+→ Sign-in
+  ┌
+  │ 'Username: User-Van'
+  └
+  POST http://arch.homework/auth/sign-in [200 OK, 289B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "username": "User-Van",\n' +
+  │   '    "password": "password1234"\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"token": "7999e6c0c9a2870c5469274792cb75785b868093b8
+  │ 3a5d237827ecedd11fb27d7a64dc0ebc936ba010b2a329e64f3952
+  │ 5c60111250b201ca8927994007cdb152"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Session token in the response
+  ┌
+  │ 'Session token: 7999e6c0c9a2870c5469274792cb75785b8680
+  │ 93b83a5d237827ecedd11fb27d7a64dc0ebc936ba010b2a329e64f
+  │ 39525c60111250b201ca8927994007cdb152'
+  └
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 166B, 7ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "0.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Add funds - 150.00
+  POST http://arch.homework/billing [200 OK, 168B, 10ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "amount": "150.00",\n' +
+  │   '    "idempotency_key": "b333dbb8-7296-49b0-a65d-9b5
+  │ ceefc36bb" \n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"balance": "150.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Balance is 150.00
+
+→ Check notifications
+  GET http://arch.homework/notifications [200 OK, 242B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"event": "Funds transferred - 150.00", "created_at"
+  │ : "2021-11-02T19:37:34.890767", "id": 25}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check notifications
+
+→ List available scooters
+  GET http://arch.homework/scooters [200 OK, 1.41KB, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"latitude": "-36.61506149", "longitude": "-13.69113
+  │ 532", "charge": 94.57567301109088, "id": "d290fe4225e8
+  │ 4b2699e4fd49950fa2bb"}, {"latitude": "81.79776806", "l
+  │ ongitude": "117.80364683", "charge": 87.74815112877975
+  │ , "id": "test-billing-service-fails"}, {"latitude": "-
+  │ 76.02908929", "longitude": "72.11327335", "charge": 86
+  │ .30137228529112, "id": "639496eb645c4852a4b72732087883
+  │ 4c"}, {"latitude": "-53.61689752", "longitude": "-136.
+  │ 85252014", "charge": 72.04276396207366, "id": "7c2c665
+  │ 6cb364f65a40aaae59bd69c07"}, {"latitude": "-54.1561926
+  │ 9", "longitude": "92.30541901", "charge": 49.799752876
+  │ 18801, "id": "de804b160ab249dcb98b1e5edeed75a8"}, {"la
+  │ titude": "52.19389131", "longitude": "-165.29847377", 
+  │ "charge": 47.48237112947196, "id": "test-notification-
+  │ service-fails"}, {"latitude": "-73.45264396", "longitu
+  │ de": "88.96932807", "charge": 26.093991329739275, "id"
+  │ : "c3e6dc4fd9724870a0a494a8b796d4a6"}, {"latitude": "1
+  │ 6.39280064", "longitude": "-74.85557004", "charge": 18
+  │ .907960618146614, "id": "79c0809806c34d7c90ee5d6e195c2
+  │ e35"}, {"latitude": "-23.13332288", "longitude": "-83.
+  │ 76727844", "charge": 11.476338566477384, "id": "90922a
+  │ 02c05f4557a21bcf5aab600be7"}, {"latitude": "-85.380925
+  │ 67", "longitude": "0.75054655", "charge": 3.4469798628
+  │ 069426, "id": "3b86727c47fb465dacf861fd26bb870a"}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check available scooters
+  ┌
+  │ 'Scooter ID: d290fe4225e84b2699e4fd49950fa2bb'
+  └
+
+→ Start scooter rent
+  PUT http://arch.homework/scooters/rent [200 OK, 228B, 10ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "scooter_id": "d290fe4225e84b2699e4fd49950fa2bb
+  │ "\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"scooter_id": "d290fe4225e84b2699e4fd49950fa2bb", "s
+  │ tatus": "PENDING", "id": 15}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent is in PENDING status
+
+→ List available scooters - one scooter is in rent
+  GET http://arch.homework/scooters [200 OK, 1.28KB, 25ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"latitude": "81.79776806", "longitude": "117.803646
+  │ 83", "charge": 87.74815112877975, "id": "test-billing-
+  │ service-fails"}, {"latitude": "-76.02908929", "longitu
+  │ de": "72.11327335", "charge": 86.30137228529112, "id":
+  │  "639496eb645c4852a4b727320878834c"}, {"latitude": "-5
+  │ 3.61689752", "longitude": "-136.85252014", "charge": 7
+  │ 2.04276396207366, "id": "7c2c6656cb364f65a40aaae59bd69
+  │ c07"}, {"latitude": "-54.15619269", "longitude": "92.3
+  │ 0541901", "charge": 49.79975287618801, "id": "de804b16
+  │ 0ab249dcb98b1e5edeed75a8"}, {"latitude": "52.19389131"
+  │ , "longitude": "-165.29847377", "charge": 47.482371129
+  │ 47196, "id": "test-notification-service-fails"}, {"lat
+  │ itude": "-73.45264396", "longitude": "88.96932807", "c
+  │ harge": 26.093991329739275, "id": "c3e6dc4fd9724870a0a
+  │ 494a8b796d4a6"}, {"latitude": "16.39280064", "longitud
+  │ e": "-74.85557004", "charge": 18.907960618146614, "id"
+  │ : "79c0809806c34d7c90ee5d6e195c2e35"}, {"latitude": "-
+  │ 23.13332288", "longitude": "-83.76727844", "charge": 1
+  │ 1.476338566477384, "id": "90922a02c05f4557a21bcf5aab60
+  │ 0be7"}, {"latitude": "-85.38092567", "longitude": "0.7
+  │ 5054655", "charge": 3.4469798628069426, "id": "3b86727
+  │ c47fb465dacf861fd26bb870a"}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check available scooters
+
+→ Check notifications - start rent notification added
+  GET http://arch.homework/notifications [200 OK, 367B, 5ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"event": "Scooter rent started - d290fe4225e84b2699
+  │ e4fd49950fa2bb", "created_at": "2021-11-02T19:37:34.99
+  │ 6225", "id": 26}, {"event": "Funds transferred - 150.0
+  │ 0", "created_at": "2021-11-02T19:37:34.890767", "id": 
+  │ 25}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check notifications
+
+→ Finish scooter rent
+  DELETE http://arch.homework/scooters/rent [200 OK, 229B, 17ms]
+  ┌
+  │ 'Request body is: '
+  │ ''
+  │ 'Response body is: '
+  │ '{"scooter_id": "d290fe4225e84b2699e4fd49950fa2bb", "s
+  │ tatus": "FINISHED", "id": 15}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent has finished successfully
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 167B, 9ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "50.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Check notifications - finish rent notification added
+  GET http://arch.homework/notifications [200 OK, 492B, 8ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '[{"event": "Scooter rent finished - d290fe4225e84b269
+  │ 9e4fd49950fa2bb", "created_at": "2021-11-02T19:37:40.1
+  │ 69191", "id": 27}, {"event": "Scooter rent started - d
+  │ 290fe4225e84b2699e4fd49950fa2bb", "created_at": "2021-
+  │ 11-02T19:37:34.996225", "id": 26}, {"event": "Funds tr
+  │ ansferred - 150.00", "created_at": "2021-11-02T19:37:3
+  │ 4.890767", "id": 25}]'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check notifications
+
+→ Start scooter rent
+  PUT http://arch.homework/scooters/rent [200 OK, 228B, 11ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "scooter_id": "d290fe4225e84b2699e4fd49950fa2bb
+  │ "\n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"scooter_id": "d290fe4225e84b2699e4fd49950fa2bb", "s
+  │ tatus": "PENDING", "id": 16}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent is in PENDING status
+
+→ Check rent - canceled due to insufficient funds
+  GET http://arch.homework/scooters/rent [200 OK, 229B, 15ms]
+  ┌
+  │ 'Request body is: '
+  │ ''
+  │ 'Response body is: '
+  │ '{"scooter_id": "d290fe4225e84b2699e4fd49950fa2bb", "s
+  │ tatus": "CANCELED", "id": 16}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent is in CANCELED status
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 167B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "50.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+→ Add funds - 50.00
+  POST http://arch.homework/billing [200 OK, 168B, 9ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "amount": "50.00",\n' +
+  │   '    "idempotency_key": "d70239e1-761d-4e0f-ba86-561
+  │ 0ef78ae73" \n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"balance": "100.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Balance is 100.00
+
+→ Start scooter rent - notification fails
+  PUT http://arch.homework/scooters/rent [200 OK, 227B, 21ms]
+  ┌
+  │ 'Request body is: '
+  │ '{\n' +
+  │   '    "scooter_id": "test-notification-service-fails"
+  │ \n' +
+  │   '}'
+  │ 'Response body is: '
+  │ '{"scooter_id": "test-notification-service-fails", "st
+  │ atus": "PENDING", "id": 17}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent is in PENDING status
+
+→ Check rent - canceled due to notification failed
+  GET http://arch.homework/scooters/rent [200 OK, 228B, 10ms]
+  ┌
+  │ 'Request body is: '
+  │ ''
+  │ 'Response body is: '
+  │ '{"scooter_id": "test-notification-service-fails", "st
+  │ atus": "CANCELED", "id": 17}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check scooter rent is in CANCELED status
+
+→ Check account balance
+  GET http://arch.homework/billing [200 OK, 168B, 6ms]
+  ┌
+  │ 'Request body is: '
+  │ '...'
+  │ 'Response body is: '
+  │ '{"balance": "100.00"}'
+  └
+  ✓  Status code is 200 (OK)
+  ✓  Check account balance
+
+┌─────────────────────────┬──────────────────┬─────────────────┐
+│                         │         executed │          failed │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│              iterations │                1 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│                requests │               19 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│            test-scripts │               38 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│      prerequest-scripts │               38 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│              assertions │               37 │               0 │
+├─────────────────────────┴──────────────────┴─────────────────┤
+│ total run duration: 15.8s                                    │
+├──────────────────────────────────────────────────────────────┤
+│ total data received: 3.77KB (approx)                         │
+├──────────────────────────────────────────────────────────────┤
+│ average response time: 12ms [min: 5ms, max: 43ms, s.d.: 9ms] │
+└──────────────────────────────────────────────────────────────┘

@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "eca31a6a-730a-4a77-b254-aac8e35475e7",
-		"name": "API events",
+		"_postman_id": "b3768092-0863-433a-b133-f1a91e005778",
+		"name": "Scooter rent",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -129,7 +129,6 @@
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Check account balance\", () => {",
 							"  pm.expect(jsonData.balance).to.equal(\"0.00\");",
-							"  pm.expect(jsonData.version).to.equal(1);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -168,7 +167,7 @@
 			"response": []
 		},
 		{
-			"name": "Add funds (100.00) - valid version",
+			"name": "Add funds - 150.00",
 			"event": [
 				{
 					"listen": "test",
@@ -179,65 +178,8 @@
 							"});",
 							"",
 							"const jsonData = pm.response.json();",
-							"pm.test(\"Balance is 100.00\", () => {",
-							"  pm.expect(jsonData.balance).to.be.equal(\"100.00\");",
-							"  pm.expect(jsonData.version).to.be.equal(2);",
-							"});",
-							""
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{sessionToken}}",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"amount\": \"100.00\",\n    \"version\": 1\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://{{baseUrl}}/billing",
-					"protocol": "http",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"billing"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Add funds (100.00) - invalid version",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 412 (Precondition Failed)\", () => {",
-							"  pm.response.to.have.status(412);",
+							"pm.test(\"Balance is 150.00\", () => {",
+							"  pm.expect(jsonData.balance).to.be.equal(\"150.00\");",
 							"});",
 							""
 						],
@@ -265,177 +207,13 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"amount\": \"100.00\",\n    \"version\": 1\n}",
+					"raw": "{\n    \"amount\": \"150.00\",\n    \"idempotency_key\": \"{{$guid}}\" \n}",
 					"options": {
 						"raw": {
 							"language": "json"
 						}
 					}
 				},
-				"url": {
-					"raw": "http://{{baseUrl}}/billing",
-					"protocol": "http",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"billing"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Create payment (60.00) - valid version",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 201 (Created)\", () => {",
-							"  pm.response.to.have.status(201);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{sessionToken}}",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 2\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://{{baseUrl}}/billing/payments",
-					"protocol": "http",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"billing",
-						"payments"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Create payment (60.00) - invalid version",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 412 (Precondition Failed)\", () => {",
-							"  pm.response.to.have.status(412);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{sessionToken}}"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 2\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://{{baseUrl}}/billing/payments",
-					"protocol": "http",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"billing",
-						"payments"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Check account balance",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200 (OK)\", () => {",
-							"  pm.response.to.have.status(200);",
-							"});",
-							"",
-							"const jsonData = pm.response.json();",
-							"pm.test(\"Check account balance\", () => {",
-							"  pm.expect(jsonData.balance).to.equal(\"40.00\");",
-							"  pm.expect(jsonData.version).to.equal(3);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Authorization",
-						"value": "Bearer {{sessionToken}}",
-						"type": "text"
-					}
-				],
 				"url": {
 					"raw": "http://{{baseUrl}}/billing",
 					"protocol": "http",
@@ -463,7 +241,7 @@
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Check notifications\", () => {",
 							"  pm.expect(jsonData).to.have.lengthOf(1);",
-							"  pm.expect(jsonData[0].status).to.equal(\"succeeded\");",
+							"  pm.expect(jsonData[0].event).to.equal(\"Funds transferred - 150.00\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -502,20 +280,31 @@
 			"response": []
 		},
 		{
-			"name": "Create payment (60.00) - Insufficient funds",
+			"name": "List available scooters",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Status code is 400 (bad request)\", () => {",
-							"  pm.response.to.have.status(400);",
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
 							"});",
 							"",
 							"const jsonData = pm.response.json();",
-							"pm.test(\"Insufficient funds\", () => {",
-							"  pm.expect(jsonData.error).to.equal(\"Insufficient funds.\");",
-							"})"
+							"pm.test(\"Check available scooters\", () => {",
+							"  pm.expect(jsonData).to.have.lengthOf(10);",
+							"});",
+							"",
+							"",
+							"for (let i = 0; i < jsonData.length; i++) {",
+							"    if (!jsonData[i][\"id\"].startsWith(\"test-\")) {",
+							"        pm.collectionVariables.set(\"scooterId\", jsonData[i][\"id\"]);",
+							"        console.log(\"Scooter ID: \" + jsonData[i][\"id\"]);",
+							"        break;",
+							"    }",
+							"}",
+							"",
+							""
 						],
 						"type": "text/javascript"
 					}
@@ -531,7 +320,60 @@
 				}
 			],
 			"request": {
-				"method": "POST",
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start scooter rent",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent is in PENDING status\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(pm.collectionVariables.get(\"scooterId\"));",
+							"  pm.expect(jsonData.status).to.equal(\"PENDING\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
 				"header": [
 					{
 						"key": "Authorization",
@@ -541,7 +383,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"amount\": \"60.00\",\n    \"version\": 3\n}",
+					"raw": "{\n    \"scooter_id\": \"{{scooterId}}\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -549,14 +391,181 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{baseUrl}}/billing/payments",
+					"raw": "http://{{baseUrl}}/scooters/rent",
 					"protocol": "http",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
-						"billing",
-						"payments"
+						"scooters",
+						"rent"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List available scooters - one scooter is in rent",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check available scooters\", () => {",
+							"  pm.expect(jsonData).to.have.lengthOf(9);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"setTimeout(function(){}, [5000]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check notifications - start rent notification added",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check notifications\", () => {",
+							"  pm.expect(jsonData).to.have.lengthOf(2);",
+							"  pm.expect(jsonData[0].event).to.equal(\"Scooter rent started - \" + pm.collectionVariables.get(\"scooterId\"));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/notifications",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"notifications"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Finish scooter rent",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent has finished successfully\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(pm.collectionVariables.get(\"scooterId\"));",
+							"  pm.expect(jsonData.status).to.equal(\"FINISHED\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters/rent",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters",
+						"rent"
 					]
 				}
 			},
@@ -575,8 +584,239 @@
 							"",
 							"const jsonData = pm.response.json();",
 							"pm.test(\"Check account balance\", () => {",
-							"  pm.expect(jsonData.balance).to.equal(\"40.00\");",
-							"  pm.expect(jsonData.version).to.equal(3);",
+							"  pm.expect(jsonData.balance).to.equal(\"50.00\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{sessionToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/billing",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check notifications - finish rent notification added",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check notifications\", () => {",
+							"  pm.expect(jsonData).to.have.lengthOf(3);",
+							"  pm.expect(jsonData[0].event).to.equal(\"Scooter rent finished - \" + pm.collectionVariables.get(\"scooterId\"));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://{{baseUrl}}/notifications",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"notifications"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start scooter rent",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent is in PENDING status\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(pm.collectionVariables.get(\"scooterId\"));",
+							"  pm.expect(jsonData.status).to.equal(\"PENDING\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"scooter_id\": \"{{scooterId}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters/rent",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters",
+						"rent"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check rent - canceled due to insufficient funds",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent is in CANCELED status\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(pm.collectionVariables.get(\"scooterId\"));",
+							"  pm.expect(jsonData.status).to.equal(\"CANCELED\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"setTimeout(function(){}, [5000]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters/rent",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters",
+						"rent"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check account balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check account balance\", () => {",
+							"  pm.expect(jsonData.balance).to.equal(\"50.00\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -615,7 +855,7 @@
 			"response": []
 		},
 		{
-			"name": "Check notifications",
+			"name": "Add funds - 50.00",
 			"event": [
 				{
 					"listen": "test",
@@ -626,10 +866,198 @@
 							"});",
 							"",
 							"const jsonData = pm.response.json();",
-							"pm.test(\"Check notifications\", () => {",
-							"  pm.expect(jsonData).to.have.lengthOf(2);",
-							"  pm.expect(jsonData[0].status).to.equal(\"canceled\");",
-							"  pm.expect(jsonData[1].status).to.equal(\"succeeded\");",
+							"pm.test(\"Balance is 100.00\", () => {",
+							"  pm.expect(jsonData.balance).to.be.equal(\"100.00\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": \"50.00\",\n    \"idempotency_key\": \"{{$guid}}\" \n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/billing",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"billing"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start scooter rent - notification fails",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent is in PENDING status\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(\"test-notification-service-fails\");",
+							"  pm.expect(jsonData.status).to.equal(\"PENDING\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"scooter_id\": \"test-notification-service-fails\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters/rent",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters",
+						"rent"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check rent - canceled due to notification failed",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check scooter rent is in CANCELED status\", () => {",
+							"  pm.expect(jsonData.scooter_id).to.equal(\"test-notification-service-fails\");",
+							"  pm.expect(jsonData.status).to.equal(\"CANCELED\");",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"setTimeout(function(){}, [5000]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{sessionToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{baseUrl}}/scooters/rent",
+					"protocol": "http",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"scooters",
+						"rent"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check account balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 (OK)\", () => {",
+							"  pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const jsonData = pm.response.json();",
+							"pm.test(\"Check account balance\", () => {",
+							"  pm.expect(jsonData.balance).to.equal(\"100.00\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -650,18 +1078,18 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{sessionToken}}"
+						"value": "Bearer {{sessionToken}}",
+						"type": "text"
 					}
 				],
 				"url": {
-					"raw": "http://{{baseUrl}}/notifications",
+					"raw": "http://{{baseUrl}}/billing",
 					"protocol": "http",
 					"host": [
 						"{{baseUrl}}"
 					],
 					"path": [
-						"notifications"
+						"billing"
 					]
 				}
 			},
@@ -704,6 +1132,10 @@
 		},
 		{
 			"key": "sessionToken",
+			"value": ""
+		},
+		{
+			"key": "scooterId",
 			"value": ""
 		}
 	]

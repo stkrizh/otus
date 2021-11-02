@@ -61,4 +61,4 @@ async def init_app() -> web.Application:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    web.run_app(init_app(), port=8070)
+    web.run_app(init_app(), port=8080)

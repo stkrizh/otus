@@ -5,6 +5,6 @@ RUN pip install -r requirements.txt
 
 COPY notification_service ./notification_service
 
-EXPOSE 8080
+EXPOSE 8082
 
 CMD ["python", "-m", "notification_service.app"]

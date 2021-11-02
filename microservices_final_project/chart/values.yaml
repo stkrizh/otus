@@ -1,16 +1,19 @@
-fullnameOverride: api-events-app
+fullnameOverride: scooter-rent
 
 
 image:
   auth:
     repository: stkrizh/otus-arch
-    tag: api-events-auth-service
+    tag: final-auth-service
   billing:
     repository: stkrizh/otus-arch
-    tag: api-events-billing-service
+    tag: final-billing-service
   notification:
     repository: stkrizh/otus-arch
-    tag: api-events-notification-service
+    tag: final-notification-service
+  scooter:
+    repository: stkrizh/otus-arch
+    tag: final-scooter-management-service
 
 
 service:

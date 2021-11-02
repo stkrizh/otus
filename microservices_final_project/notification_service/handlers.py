@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import logging
 from uuid import uuid4
 
 import aio_pika
@@ -9,7 +10,14 @@ from asyncpg import Pool, UniqueViolationError
 from notification_service.schema import NotificationSchema
 
 
+LOG = logging.getLogger(__name__)
+
+
 TEST_SCOOTER_ID = "test-notification-service-fails"
+
+
+class NotificationHasNotBeenDelivered(Exception):
+    pass
 
 
 async def get_notifications(request: web.Request) -> web.Response:
@@ -38,8 +46,45 @@ async def create_notification_on_payment_succeeded(
         scooter_id = payload["scooter_id"]
         idempotency_key = payload["idempotency_key"]
 
+        try:
+            async with pool.acquire() as connection:
+                async with connection.transaction():
+                    try:
+                        await connection.execute(
+                            """
+                            INSERT INTO notification.notification (user_id, event, created_at, idempotency_key) 
+                            VALUES ($1, $2, $3, $4)
+                            """,
+                            user_id,
+                            f"Scooter rent started - {scooter_id}",
+                            dt.datetime.utcnow(),
+                            idempotency_key,
+                        )
+                    except UniqueViolationError:
+                        return None
+
+                    if scooter_id == TEST_SCOOTER_ID:
+                        await _notify_notification_failed(amqp_connection, user_id, scooter_id)
+                        raise NotificationHasNotBeenDelivered()
+
+                    await _notify_notification_succeeded(amqp_connection, user_id, scooter_id)
+
+        except NotificationHasNotBeenDelivered:
+            LOG.info("Notification has not been delivered.")
+
+
+async def create_notification_on_funds_transferred(
+        pool: Pool,
+        message: aio_pika.IncomingMessage,
+) -> None:
+    async with message.process():
+        payload = json.loads(message.body)
+        user_id = payload["user_id"]
+        amount = payload["amount"]
+        idempotency_key = payload["idempotency_key"]
+
         async with pool.acquire() as connection:
-            async with connection.transaction() as transaction:
+            async with connection.transaction():
                 try:
                     await connection.execute(
                         """
@@ -47,19 +92,39 @@ async def create_notification_on_payment_succeeded(
                         VALUES ($1, $2, $3, $4)
                         """,
                         user_id,
-                        f"Scooter rent started - {scooter_id}",
+                        f"Funds transferred - {amount}",
                         dt.datetime.utcnow(),
                         idempotency_key,
                     )
                 except UniqueViolationError:
                     return None
 
-                if scooter_id == TEST_SCOOTER_ID:
-                    await _notify_notification_failed(amqp_connection, user_id, scooter_id)
-                    await transaction.rollback()
-                    return None
 
-                await _notify_notification_succeeded(amqp_connection, user_id, scooter_id)
+async def create_notification_on_rent_finished(
+        pool: Pool,
+        message: aio_pika.IncomingMessage,
+) -> None:
+    async with message.process():
+        payload = json.loads(message.body)
+        user_id = payload["user_id"]
+        scooter_id = payload["scooter_id"]
+        idempotency_key = payload["idempotency_key"]
+
+        async with pool.acquire() as connection:
+            async with connection.transaction():
+                try:
+                    await connection.execute(
+                        """
+                        INSERT INTO notification.notification (user_id, event, created_at, idempotency_key) 
+                        VALUES ($1, $2, $3, $4)
+                        """,
+                        user_id,
+                        f"Scooter rent finished - {scooter_id}",
+                        dt.datetime.utcnow(),
+                        idempotency_key,
+                    )
+                except UniqueViolationError:
+                    return None
 
 
 async def health(_: web.Request) -> web.Response:

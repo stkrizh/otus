@@ -1,11 +1,35 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: {{ include "chart.fullname" . }}-auth
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /auth(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "chart.fullname" . }}-auth
+                port:
+                  number: 80
+
+
+---
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: {{ include "chart.fullname" . }}-billing
   labels:
     {{- include "chart.labels" . | nindent 4 }}
   annotations:
-    nginx.ingress.kubernetes.io/auth-url: http://api-events-app-auth.default.svc.cluster.local/auth
+    nginx.ingress.kubernetes.io/auth-url: http://scooter-rent-auth.default.svc.cluster.local/auth
     nginx.ingress.kubernetes.io/auth-method: GET
     nginx.ingress.kubernetes.io/auth-response-headers: x-user-id
     nginx.ingress.kubernetes.io/rewrite-target: /$2
@@ -32,7 +56,7 @@ metadata:
   labels:
     {{- include "chart.labels" . | nindent 4 }}
   annotations:
-    nginx.ingress.kubernetes.io/auth-url: http://api-events-app-auth.default.svc.cluster.local/auth
+    nginx.ingress.kubernetes.io/auth-url: http://scooter-rent-auth.default.svc.cluster.local/auth
     nginx.ingress.kubernetes.io/auth-method: GET
     nginx.ingress.kubernetes.io/auth-response-headers: x-user-id
     nginx.ingress.kubernetes.io/rewrite-target: /$2
@@ -55,19 +79,22 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "chart.fullname" . }}-auth
+  name: {{ include "chart.fullname" . }}-scooter-management
   labels:
     {{- include "chart.labels" . | nindent 4 }}
   annotations:
+    nginx.ingress.kubernetes.io/auth-url: http://scooter-rent-auth.default.svc.cluster.local/auth
+    nginx.ingress.kubernetes.io/auth-method: GET
+    nginx.ingress.kubernetes.io/auth-response-headers: x-user-id
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
     - http:
         paths:
-          - path: /auth(/|$)(.*)
+          - path: /scooters(/|$)(.*)
             pathType: Prefix
             backend:
               service:
-                name: {{ include "chart.fullname" . }}-auth
+                name: {{ include "chart.fullname" . }}-scooter-management
                 port:
                   number: 80

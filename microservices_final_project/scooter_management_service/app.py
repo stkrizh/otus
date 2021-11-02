@@ -23,7 +23,7 @@ INIT_DB_TABLES = """
     CREATE SCHEMA IF NOT EXISTS scooter;
 
     CREATE TABLE IF NOT EXISTS scooter.scooter (
-        id UUID PRIMARY KEY,
+        id TEXT PRIMARY KEY,
         charge DOUBLE PRECISION NOT NULL,
         latitude DECIMAL(10,8) NOT NULL,
         longitude DECIMAL(11,8) NOT NULL
@@ -31,7 +31,7 @@ INIT_DB_TABLES = """
     
     CREATE TABLE IF NOT EXISTS scooter.rent (
         id SERIAL PRIMARY KEY,
-        scooter_id UUID NOT NULL REFERENCES scooter.scooter (id),
+        scooter_id TEXT NOT NULL REFERENCES scooter.scooter (id),
         user_id INTEGER NOT NULL,
         status TEXT NOT NULL
     );
@@ -57,7 +57,7 @@ async def init_pg_pool(app: web.Application) -> asyncpg.Pool:
                 scooter_ids = [
                     "test-billing-service-fails",
                     "test-notification-service-fails",
-                    *(uuid4() for _ in range(8)),
+                    *(uuid4().hex for _ in range(8)),
                 ]
                 for scooter_id in scooter_ids:
                     await connection.execute(
@@ -122,4 +122,4 @@ async def init_app() -> web.Application:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    web.run_app(init_app(), port=8090)
+    web.run_app(init_app(), port=8083)

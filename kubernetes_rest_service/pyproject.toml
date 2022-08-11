@@ -6,7 +6,7 @@ authors = ["stkrizh <st.krizh@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Django = "^3.2.5"
+Django = "^3.2.15"
 psycopg2-binary = "^2.9.1"
 djangorestframework = "^3.12.4"
 gunicorn = "^20.1.0"
